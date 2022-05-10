@@ -8,10 +8,10 @@ pub struct Bus {
 }
 
 trait Memory {
-    fn read_byte(addr: u16) -> u8;
-    fn write_byte(addr: u16, value:u8);
-    fn read_word(addr: u16) -> u16;
-    fn write_word(addr: u16, value:u16);
+    fn read_byte(&mut self, addr: u16) -> u8;
+    fn write_byte(&mut self, addr: u16, value: u8);
+    fn read_word(&mut self, addr: u16) -> u16;
+    fn write_word(&mut self,addr: u16, value: u16);
 }
 
 use bitflags::bitflags;
@@ -41,19 +41,19 @@ pub struct Cpu {
 }
 
 impl Memory for Cpu{
-    fn read_byte(addr: u16) -> u8 {
+    fn read_byte(&mut self, addr: u16) -> u8 {
         todo!()
     }
 
-    fn write_byte(addr: u16, value: u8) {
+    fn write_byte(&mut self, addr: u16, value: u8) {
         todo!()
     }
 
-    fn read_word(addr: u16) -> u16 {
+    fn read_word(&mut self, addr: u16) -> u16 {
         todo!()
     }
 
-    fn write_word(addr: u16, value: u16) {
+    fn write_word(&mut self,addr: u16, value: u16) {
         todo!()
     }
 }
@@ -85,20 +85,27 @@ impl Cpu {
     }
 
     fn read_instruction_operand_8bit(&mut self) -> u8{
-        let operand = Cpu::read_byte(self.prog_counter);
+        let operand = self.read_byte(self.prog_counter);
         self.prog_counter+=1;
         return operand;
     }
 
     fn read_instruction_operand_16bit(&mut self) -> u16{
-        let operand = Cpu::read_word(self.prog_counter);
+        let operand = self.read_word(self.prog_counter);
         self.prog_counter+=2;
         return operand;
     }
 
+
     pub fn run(&mut self){
+
+        fn is_page_cross(addr1: u16, addr2: u16) -> bool {
+            return addr1 & 0xFF != addr2 & 0xFF;
+        }
+
+
         loop {
-            let opcode = Cpu::read_byte(self.prog_counter);
+            let opcode = self.read_byte(self.prog_counter);
             self.prog_counter+=1;
 
             let cycles = match opcode {
@@ -153,20 +160,193 @@ impl Cpu {
                 // Load Register from memory
                 0xA5 => {
                     let address = self.read_instruction_operand_8bit();
-                    self.a = Cpu::read_byte(address as u16);
+                    self.a = self.read_byte(address as u16);
                     self.update_zero_and_negative_flags(self.a);
                     3
                 },
                 0xB5 => {
-                    let address = self.read_instruction_operand_8bit() + self.x;
-                    self.a = Cpu::read_byte(address as u16);
+                    let address = self.read_instruction_operand_8bit().wrapping_add(self.x);
+                    self.a = self.read_byte(address as u16);
                     self.update_zero_and_negative_flags(self.a);
                     4
                 },
                 0xAD => {
                     let address = self.read_instruction_operand_16bit();
-                    self.a = Cpu::read_byte(address);
+                    self.a = self.read_byte(address);
                     self.update_zero_and_negative_flags(self.a);
+                    4
+                },
+                0xBD => {
+                    let operand_address = self.read_instruction_operand_16bit();
+                    let final_address = operand_address.wrapping_add(self.x as u16);
+                    self.a = self.read_byte(final_address);
+                    self.update_zero_and_negative_flags(self.a);
+                    if is_page_cross(operand_address, final_address) {5} else {4}
+                },
+                0xB9 => {
+                    let operand_address = self.read_instruction_operand_16bit();
+                    let final_address = operand_address.wrapping_add(self.y as u16);
+                    self.a = self.read_byte(final_address);
+                    self.update_zero_and_negative_flags(self.a);
+                    if is_page_cross(operand_address, final_address) {5} else {4}
+                },
+                0xA1 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    let address = self.read_word(operand.wrapping_add(self.x) as u16);
+                    self.a = self.read_byte(address);
+                    self.update_zero_and_negative_flags(self.a);
+                    6
+                },
+                0xB1 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    let address = self.read_word(operand as u16);
+                    let final_address = address.wrapping_add(self.y as u16);
+                    self.a = self.read_byte(final_address as u16);
+                    self.update_zero_and_negative_flags(self.a);
+                    if is_page_cross(address, final_address) {6} else {5}
+                },
+                0xA6 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.x = self.read_byte(operand as u16);
+                    self.update_zero_and_negative_flags(self.x);
+                    3
+                },
+                0xB6 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.x = self.read_byte((operand.wrapping_add(self.y)) as u16);
+                    self.update_zero_and_negative_flags(self.x);
+                    6
+                },
+                0xAE => {
+                    let address = self.read_instruction_operand_16bit();
+                    self.x = self.read_byte(address);
+                    self.update_zero_and_negative_flags(self.x);
+                    4
+                },
+                0xBE => {
+                    let address = self.read_instruction_operand_16bit();
+                    let final_address = address.wrapping_add(self.y as u16);
+                    self.x = self.read_byte(final_address);
+                    self.update_zero_and_negative_flags(self.x);
+                    if is_page_cross(address, final_address) {5} else {4}
+                },
+                0xA4 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.y = self.read_byte(operand as u16);
+                    self.update_zero_and_negative_flags(self.y);
+                    3
+                },
+                0xB4 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.y = self.read_byte(operand.wrapping_add(self.x) as u16);
+                    self.update_zero_and_negative_flags(self.y);
+                    4
+                },
+                0xAC => {
+                    let address = self.read_instruction_operand_16bit();
+                    self.y = self.read_byte(address);
+                    self.update_zero_and_negative_flags(self.y);
+                    4
+                },
+                0xBC => {
+                    let address = self.read_instruction_operand_16bit();
+                    let final_address = address.wrapping_add(self.x as u16);
+                    self.y = self.read_byte(final_address);
+                    self.update_zero_and_negative_flags(self.y);
+                    if is_page_cross(address, final_address) {5} else {4}
+                },
+                //Store registry in memory
+                0x85 => {
+                    let address = self.read_instruction_operand_8bit();
+                    self.write_byte(address as u16, self.a);
+                    3
+                },
+                0x95 => {
+                    let address = self.read_instruction_operand_8bit() + self.x;
+                    self.write_byte(address as u16, self.a);
+                    4
+                },
+                0x8D => {
+                    let address = self.read_instruction_operand_16bit();
+                    self.write_byte(address, self.a);
+                    4
+                },
+                0x9D => {
+                    let address = self.read_instruction_operand_16bit() + self.x as u16;
+                    self.write_byte(address, self.a);
+                    5
+                },
+                0x99 => {
+                    let address = self.read_instruction_operand_16bit() + self.y as u16;
+                    self.write_byte(address, self.a);
+                    5
+                },
+                0x81 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    let address = self.read_word(operand.wrapping_add(self.x) as u16);
+                    self.write_byte(address, self.a);
+                    6
+                },
+                0x91 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    let address = self.read_word(operand as u16);
+                    self.write_byte(address.wrapping_add(self.y as u16), self.a);
+                    6
+                },
+                0x86 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.write_byte(operand as u16, self.x);
+                    3
+                },
+                0x96 => {
+                    let address = self.read_instruction_operand_8bit().wrapping_add(self.y);
+                    self.write_byte(address as u16, self.x);
+                    4
+                },
+                0x8E => {
+                    let address = self.read_instruction_operand_16bit();
+                    self.write_byte(address, self.x);
+                    4
+                },
+                0x84 => {
+                    let operand = self.read_instruction_operand_8bit();
+                    self.write_byte(operand as u16, self.y);
+                    3
+                },
+                0x94 => {
+                    let address = self.read_instruction_operand_8bit().wrapping_add(self.x);
+                    self.write_byte(address as u16, self.y);
+                    4
+                },
+                0x8C => {
+                    let address = self.read_instruction_operand_16bit();
+                    self.write_byte(address, self.y);
+                    4
+                },
+                //Push/pull
+                0x48 => {
+                    let stack_address: u16 = 0x100 + (self.stack_ptr as u16) ;
+                    self.write_byte(stack_address, self.a);
+                    self.stack_ptr.wrapping_sub(1);
+                    3
+                },
+                0x08 => {
+                    let stack_address: u16 = 0x100 + (self.stack_ptr as u16) ;
+                    self.write_byte(stack_address, self.flag.bits);
+                    self.stack_ptr.wrapping_sub(1);
+                    3
+                },
+                0x68 => {
+                    self.stack_ptr.wrapping_add(1);
+                    let stack_address: u16 = 0x100 + (self.stack_ptr as u16);
+                    self.a = self.read_byte(stack_address);
+                    self.update_zero_and_negative_flags(self.a);
+                    4
+                },
+                0x28 => {
+                    self.stack_ptr.wrapping_add(1);
+                    let stack_address: u16 = 0x100 + (self.stack_ptr as u16);
+                    self.flag = FlagRegister::from_bits_truncate(self.read_byte(stack_address));
                     4
                 },
 
