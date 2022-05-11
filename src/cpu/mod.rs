@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-use std::ops::Sub;
-
-
 use bitflags::bitflags;
 
 mod opcodes;
@@ -31,7 +27,7 @@ bitflags! {
 }
 
 
-pub struct Cpu {
+pub struct Cpu<'a> {
     // Registers
     pub(self) a: u8,
     //Accumulator
@@ -45,10 +41,10 @@ pub struct Cpu {
     //Flag register
     pub(self) prog_counter: u16,
     //Program Counter,
-    bus: Bus,
+    bus: Bus<'a>,
 }
 
-impl Memory for Cpu {
+impl Memory for Cpu<'_>{
     fn read_byte(&mut self, addr: u16) -> u8 {
         return self.bus.read_byte(addr);
     }
@@ -58,8 +54,8 @@ impl Memory for Cpu {
     }
 }
 
-impl Cpu {
-    pub fn new(bus: Bus) -> Cpu {
+impl <'a> Cpu<'a> {
+    pub fn new(bus: Bus<'a>) -> Cpu<'a> {
         return Cpu {
             a: 0,
             x: 0,
@@ -100,6 +96,7 @@ impl Cpu {
     fn is_page_cross(addr1: u16, addr2: u16) -> bool {
         return addr1 & 0xFF00 != addr2 & 0xFF00;
     }
+
 
     fn get_operand_address(&mut self, address_mode: &AddressMode) -> (u16, bool) {
         return match address_mode {
@@ -411,7 +408,8 @@ impl Cpu {
         }
 
         if matches!(interrupt_type,Interrupt::IRQ) {
-            return self.reset();
+            self.reset();
+            return 7;
         }
 
         let break_flag = match interrupt_type {
@@ -438,24 +436,23 @@ impl Cpu {
         7
     }
 
-    fn reset(&mut self) -> u32 {
-        self.flag.insert(FlagRegister::BREAK);
-        //TODO fix flag register
-        self.flag.insert(FlagRegister::IRQ_DISABLE);
-        let interrupt_fn = self.read_word(0xFFFC);
-        self.prog_counter = interrupt_fn;
-        7
+    pub fn reset(&mut self) {
+        self.a = 0;
+        self.x = 0;
+        self.y = 0;
+        self.stack_ptr = 0xFD;
+        self.flag = FlagRegister::from_bits_truncate(0b100100);
+        self.prog_counter = self.read_word(0xFFFC);
     }
 
     pub fn execute_instruction(&mut self) -> u32 {
 
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
+        println!("Executing {:x}: {:x} (a:{:x}, x:{:x}, y:{:x}, S:{:x}, P:{:x}  )", self.prog_counter, opcode, self.a, self.x, self.y, self.stack_ptr, self.flag);
         self.prog_counter = self.prog_counter.wrapping_add(1);
-        let cycles = (instruction.operation)(self, instruction);
 
-        //println!("Executing opcode {:x}", opcode);
-        /*let cycles = match opcode {
+        let cycles = match opcode {
             //Register/Immediate to Register move
             0xA8 => {
                 self.y = self.a;
@@ -547,22 +544,26 @@ impl Cpu {
             0xC6 | 0xD6 | 0xCE | 0xDE => self.decrease_in_memory(instruction),
             //INX
             0xE8 => {
-                self.x += 1;
+                self.x = self.x.wrapping_add(1);
+                self.update_zero_and_negative_flags(self.x);
                 2
             }
             //INY
             0xC8 => {
-                self.y += 1;
+                self.y = self.y.wrapping_add(1);
+                self.update_zero_and_negative_flags(self.y);
                 2
             }
             //DEX
             0xCA => {
-                self.x -= 1;
+                self.x = self.x.wrapping_sub(1);
+                self.update_zero_and_negative_flags(self.x);
                 2
             }
             //DEY
             0x88 => {
-                self.y -= 1;
+                self.y = self.y.wrapping_sub(1);
+                self.update_zero_and_negative_flags(self.y);
                 2
             }
             //ASL
@@ -682,7 +683,7 @@ impl Cpu {
                 instruction.cycles
             },
             _ => todo!()
-        };*/
+        };
         return cycles;
     }
 }
