@@ -9,10 +9,14 @@ pub struct Bus<'a> {
 impl Memory for Bus<'_> {
     fn read_byte(&mut self, addr: u16) -> u8 {
         return match addr {
+            0x2000..=0x3FFF => {
+                println!("PPU IO");
+                return self.cpu_memory[addr as usize];
+            },
             0x8000..=0xFFFF => {
                 let rom_addr = addr - 0x8000;
                 let pkg_rom = &self.cartridge.unwrap().pkg_rom;
-                if(pkg_rom.len() == 0x4000 && rom_addr >= 0x4000) {
+                if (pkg_rom.len() == 0x4000 && rom_addr >= 0x4000) {
                     return *pkg_rom.get((rom_addr % 0x4000) as usize).unwrap();
                 } else {
                     return *pkg_rom.get(rom_addr as usize).unwrap();
@@ -26,7 +30,15 @@ impl Memory for Bus<'_> {
     }
 
     fn write_byte(&mut self, addr: u16, value: u8) {
-        self.cpu_memory[addr as usize] = value;
+        match addr {
+            0x2000..=0x3FFF => {
+                println!("PPU IO write");
+            },
+            0x8000..=0xFFFF => {
+                //Do Nothing
+            },
+            _ => self.cpu_memory[addr as usize] = value,
+        }
     }
 }
 
