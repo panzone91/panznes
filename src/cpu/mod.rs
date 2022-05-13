@@ -41,7 +41,7 @@ pub struct Cpu<'a> {
     //Flag register
     pub(self) prog_counter: u16,
     //Program Counter,
-    bus: Bus<'a>,
+    bus: &'a mut Bus<'a>,
 }
 
 impl Memory for Cpu<'_>{
@@ -55,7 +55,7 @@ impl Memory for Cpu<'_>{
 }
 
 impl <'a> Cpu<'a> {
-    pub fn new(bus: Bus<'a>) -> Cpu<'a> {
+    pub fn new(bus: &'a mut Bus<'a>) -> Cpu<'a> {
         return Cpu {
             a: 0,
             x: 0,

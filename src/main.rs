@@ -28,7 +28,7 @@ fn main() {
     let cart = Cartridge::from_ines(&buffer);
     bus.insert_cartridge(&cart);
 
-    let mut cpu = Cpu::new(bus);
+    let mut cpu = Cpu::new(&mut bus);
     cpu.reset();
     let mut num_clock:u32 = 0;
     const NUM_OP: u32 = 17897725;
