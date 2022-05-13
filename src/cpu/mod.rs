@@ -46,11 +46,11 @@ pub struct Cpu<'a> {
 
 impl Memory for Cpu<'_>{
     fn read_byte(&mut self, addr: u16) -> u8 {
-        return self.bus.read_byte(addr);
+        return self.bus.read_cpu_byte(addr);
     }
 
     fn write_byte(&mut self, addr: u16, value: u8) {
-        self.bus.write_byte(addr, value);
+        self.bus.write_cpu_byte(addr, value);
     }
 }
 
