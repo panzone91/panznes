@@ -140,6 +140,7 @@ impl<'a> Nes<'a> {
             0x0000..=0x1FFF => {
                 //Ram is mirrored in this space
                 let ram_addr = (addr % 0x800) as usize;
+
                 self.cpu_memory[ram_addr] = value;
             }
             0x2000..=0x3FFF => {

@@ -1,5 +1,7 @@
 use crate::cartridge::Cartridge;
 use crate::nes::Nes;
+use sdl2::event::Event;
+use sdl2::libc::exit;
 use sdl2::pixels::{Color, PixelFormat};
 use sdl2::rect::Rect;
 use std::cell::RefCell;
@@ -23,8 +25,9 @@ fn get_tick() -> u128 {
 }
 
 fn main() {
-    let mut file = File::open("/home/panzone/workspace/dk.nes").unwrap();
-    let metadata = fs::metadata("/home/panzone/workspace/dk.nes").expect("unable to read metadata");
+    let path = "/home/panzone/Downloads/ice_climbers.nes";
+    let mut file = File::open(path).unwrap();
+    let metadata = fs::metadata(path).expect("unable to read metadata");
     let mut buffer = vec![0; metadata.len() as usize];
     file.read(&mut buffer).unwrap();
 
@@ -51,14 +54,20 @@ fn main() {
     nes.reset();
     let mut num_clock: u32 = 0;
     const NUM_OP: u32 = 17897725;
+    let mut execute = true;
 
-    loop {
+    while execute == true {
         let start = SystemTime::now();
         while num_clock <= NUM_OP / 60 {
-            num_clock += nes.execute_instruction();
-            nes.execute_ppu(num_clock);
+            let cpu_clock = nes.execute_instruction();
+            nes.execute_ppu(cpu_clock);
+            num_clock += cpu_clock;
         }
+
+        canvas.set_draw_color(Color::RGB(255, 255, 255));
         canvas.clear();
+
+        let mut event_pump = sdl_context.event_pump().unwrap();
 
         for i in 0..240 {
             for k in 0..256 {
@@ -77,14 +86,26 @@ fn main() {
                     0,
                 );
                 canvas.set_draw_color(color);
-                canvas.draw_rect(pixel);
+                canvas.fill_rect(pixel);
             }
         }
         canvas.present();
 
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => {
+                    execute = false;
+                }
+                _ => {}
+            }
+        }
+
         num_clock -= NUM_OP / 60;
         let end = SystemTime::now();
-        //println!("Finished {}", end.duration_since(start).unwrap().as_nanos() / 1000000);
+        /*println!(
+            "Finished {}",
+            end.duration_since(start).unwrap().as_nanos() / 1000000
+        );*/
         let delta_t: i128 = 16666666 - (end.duration_since(start).unwrap().as_nanos() as i128);
         if delta_t > 0 {
             //println!("Waiting {}", delta_t);

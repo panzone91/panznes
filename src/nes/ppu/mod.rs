@@ -8,7 +8,7 @@ impl<'a> Nes<'a> {
     fn write_background(&mut self, current_scanline: u32) {
         let tile_index_row = current_scanline >> 0x3;
 
-        for i in 0..31 {
+        for i in 0..=31 {
             let current_index_nametable = ((tile_index_row * 32) + i) as u16;
             //TODO the starting point depends on scrolling registers
             let current_tile_index = self.read_ppu_byte((0x2000 + current_index_nametable) as u16);
@@ -22,11 +22,13 @@ impl<'a> Nes<'a> {
             let tile_address = pattern_table + (u16::from(current_tile_index) * 16);
 
             //A tile is 8x8 pixels and each pixel is represented by 2 bit, so each row is 2 bytes
-            let current_tile_row = (current_scanline & 0x3) as u16;
-            let tile_row_address = (tile_address + (current_tile_row * 2)) as u16;
+            let current_tile_row = (current_scanline & 0x7) as u16;
+            let tile_row_address = (tile_address + current_tile_row) as u16;
 
-            let row_word: u16 = (u16::from(self.read_ppu_byte(tile_row_address)) << 8)
-                | u16::from(self.read_ppu_byte(tile_row_address + 1));
+            let first_plane = self.read_ppu_byte(tile_row_address);
+            let second_plane = self.read_ppu_byte(tile_row_address + 8);
+            //let row_word: u16 = (u16::from(self.read_ppu_byte(tile_row_address)) << 8)
+            //    | u16::from(self.read_ppu_byte(tile_row_address + 1));
 
             //I need to compute the attribute table for select the palette
             //TODO attribute table
@@ -53,7 +55,9 @@ impl<'a> Nes<'a> {
                 >> (internal_group_index * 2);
 
             for k in 0..=7 {
-                let b = (row_word >> (14 - k * 2)) & 0x3;
+                let b = (first_plane >> (7 - k) & 0x1) | ((second_plane >> (7 - k) & 0x1) << 1);
+
+                //let b = (row_word >> (14 - k * 2)) & 0x3;
                 let q = (msb << 2) | (b as u8);
 
                 let palette = self.read_ppu_byte(0x3F00 + u16::from(q)) & 0x3F;
@@ -74,6 +78,7 @@ impl<'a> Nes<'a> {
         let ppu_cycles = cpu_cycles as i32 * 3;
         let clock_current_scanline = self.clock_current_scanline - ppu_cycles;
 
+        self.clock_current_scanline = clock_current_scanline;
         if clock_current_scanline <= 0 {
             //new scanline!
             let next_scanline = self.current_scanline + 1;
@@ -115,29 +120,31 @@ impl<'a> Nes<'a> {
     }
 
     pub(crate) fn read_ppu_byte(&mut self, addr: u16) -> u8 {
-        return match addr {
+        let read_addr = addr & 0x3FFF;
+
+        return match read_addr {
             //CHR_ROM
             //TODO This depends on cart mapping
-            0..=0x1FFF => self.cartridge.unwrap().chr_rom[addr as usize],
+            0..=0x1FFF => self.cartridge.unwrap().chr_rom[read_addr as usize],
             //Nametables
             //TODO this depends on cart mirroring!
             0x2000..=0x2FFF => {
-                let ppu_addr = addr - 0x2000;
+                let ppu_addr = read_addr - 0x2000;
                 self.ppu_memory[ppu_addr as usize]
             }
             //Mirror of 0x2000 .. 0x2EFF
             0x3000..=0x3EFF => {
-                let ppu_addr = addr - 0x1000;
+                let ppu_addr = read_addr - 0x1000;
                 self.read_ppu_byte(ppu_addr)
             }
             //Palettes area
             0x3F00..=0x3F1F => {
-                let palette_addr = addr & 0x1F;
+                let palette_addr = read_addr & 0x1F;
                 self.palettes[palette_addr as usize]
             }
             //Mirror of 3F00 .. 0x3F1F
             0x3F20..=0x3FFF => {
-                let ppu_addr = 0x3F00 + (addr & 0x1F);
+                let ppu_addr = 0x3F00 + (read_addr & 0x1F);
                 self.read_ppu_byte(ppu_addr)
             }
             _ => panic!("PPU bus is 14 bit long"),
@@ -156,7 +163,7 @@ impl<'a> Nes<'a> {
             //Nametables
             //TODO this depends on cart mirroring!
             0x2000..=0x2FFF => {
-                let ppu_addr = addr - 0x2000;
+                let ppu_addr = write_addr - 0x2000;
                 self.ppu_memory[ppu_addr as usize] = value;
             }
             //Mirror of 0x2000 .. 0x2EFF

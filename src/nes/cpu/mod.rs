@@ -1,5 +1,6 @@
 use crate::memory::Memory;
 use crate::nes::cpu::opcodes::OPCODES;
+use crate::nes::system_bus::PPUSTATUS;
 use crate::nes::{FlagRegister, Interrupt, Nes};
 
 mod opcodes;
@@ -21,6 +22,7 @@ impl<'a> Nes<'a> {
             return self.raise_interrupt(Interrupt::NMI);
         }
 
+        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
         println!(
@@ -178,7 +180,7 @@ impl<'a> Nes<'a> {
             //JSR
             0x20 => {
                 let jump_addr = self.read_instruction_operand_16bit();
-                let ret_pc = self.prog_counter;
+                let ret_pc = self.prog_counter - 1;
                 self.push((ret_pc >> 8) as u8);
                 self.push((ret_pc & 0xFF) as u8);
                 self.prog_counter = jump_addr;
@@ -210,7 +212,7 @@ impl<'a> Nes<'a> {
                 let (low_byte, _) = self.pop();
                 let (hi_byte, _) = self.pop();
                 let prog_counter = ((hi_byte as u16) << 8) | low_byte as u16;
-                self.prog_counter = prog_counter;
+                self.prog_counter = prog_counter.wrapping_add(1);
                 6
             }
             //BPL
