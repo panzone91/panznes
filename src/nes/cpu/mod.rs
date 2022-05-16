@@ -16,6 +16,11 @@ impl Memory for Nes<'_> {
 
 impl<'a> Nes<'a> {
     pub fn execute_instruction(&mut self) -> u32 {
+        if self.raised_nmi == true {
+            self.raised_nmi = false;
+            return self.raise_interrupt(Interrupt::NMI);
+        }
+
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
         println!(

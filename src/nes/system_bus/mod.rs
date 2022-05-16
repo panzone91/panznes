@@ -109,7 +109,10 @@ impl<'a> Nes<'a> {
                 };
             }
             //APU I/O
-            0x4000..=0x401F => 0,
+            0x4000..=0x401F => {
+                println!("I/O");
+                0
+            }
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => 0,
             //Cart RAM
@@ -186,7 +189,7 @@ impl<'a> Nes<'a> {
                         self.write_ppu_byte(vram_addr, value);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
-                        self.vram_addr = vram_addr + if horizontal_increment { 1 } else { 32 };
+                        self.vram_addr = vram_addr + if horizontal_increment { 32 } else { 1 };
                     }
                     2 => {
                         //NOP
@@ -210,14 +213,8 @@ impl<'a> Nes<'a> {
         }
     }
 
-    pub(crate) fn read_ppu_byte(&mut self, addr: u16) -> u8 {
-        0
-    }
-
-    pub(crate) fn write_ppu_byte(&mut self, addr: u16, value: u8) {}
-
     pub(crate) fn raise_nmi(&mut self) {
         //TODO handle better for clock accuracy
-        self.raise_interrupt(Interrupt::NMI);
+        self.raised_nmi = true;
     }
 }

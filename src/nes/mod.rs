@@ -65,6 +65,11 @@ pub struct Nes<'a> {
 
     current_scanline: u32,
     clock_current_scanline: i32,
+
+    raised_nmi: bool,
+    palettes: [u8; 0x20],
+
+    pub screen: [u32; 256 * 240],
 }
 
 impl<'a> Nes<'a> {
@@ -100,10 +105,15 @@ impl<'a> Nes<'a> {
 
             current_scanline: 0,
             clock_current_scanline: 0,
+
+            raised_nmi: false,
+
+            palettes: [0x0; 0x20],
+            screen: [0x0; 256 * 240],
         }
     }
 
     pub fn insert_cartdrige(&mut self, cart: &'a Cartridge) {
-        self.cartridge = Option::Some(cart);
+        self.cartridge = Some(cart);
     }
 }
