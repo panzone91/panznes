@@ -25,7 +25,7 @@ fn get_tick() -> u128 {
 }
 
 fn main() {
-    let path = "/home/panzone/Downloads/ice_climbers.nes";
+    let path = "/home/panzone/Downloads/dk.nes";
     let mut file = File::open(path).unwrap();
     let metadata = fs::metadata(path).expect("unable to read metadata");
     let mut buffer = vec![0; metadata.len() as usize];
