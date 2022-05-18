@@ -100,12 +100,21 @@ impl<'a> Nes<'a> {
         }
     }
 
+    fn get_sprite_size(&self) -> u16 {
+        if self.ppuctrl.contains(PPUCTRL::SPRITE_SIZE_16) {
+            16
+        } else {
+            8
+        }
+    }
+
     fn write_sprites(&mut self, current_scanline: u16) {
         // PPU has a 64 byte memory that works as a secondary OAM that contains
         // the 8 sprites for this line. We starts by doing a binary search
 
         let mut secondary_oam: [u8; 32] = [0; 32];
         let mut secondary_oam_index = 0;
+        let sprite_size = self.get_sprite_size();
 
         for i in 0..=63 {
             // A sprite is composed by 4 bytes:
@@ -117,7 +126,7 @@ impl<'a> Nes<'a> {
             let current_sprite_y_index = i * 4;
             let y_pos = (self.oam_ram[current_sprite_y_index] as u16).wrapping_add(1);
 
-            if current_scanline >= y_pos && current_scanline < y_pos + 8 {
+            if current_scanline >= y_pos && current_scanline < (y_pos + sprite_size) {
                 if secondary_oam_index == 32 {
                     //There are more than 8 sprites on this line -> sprite overflow
                     self.ppustatus.insert(PPUSTATUS::SPRITE_OVERFLOW);
@@ -140,7 +149,11 @@ impl<'a> Nes<'a> {
             let sprite_x_position = secondary_oam[sprite_index + 3];
 
             //TODO NOT TRUE! The pattern table depends if 8x8 or 8x16 sprite!
-            let pattern_table: u16 = self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE);
+            let pattern_table: u16 = if sprite_size == 8 {
+                self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE)
+            } else {
+                (u16::from(sprite_tile_index) & 0x1) * 0x1000
+            };
             let tile_address = pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4);
 
             //TODO NOT TRUE! Depends if I must draw the sprite flipped
@@ -155,17 +168,24 @@ impl<'a> Nes<'a> {
             let palette_msb = sprite_attributes & 0x3;
 
             for current_pixel in 0..=7 {
+                let pixel_to_render = if sprite_attributes & 0x40 == 0 {
+                    current_pixel
+                } else {
+                    7 - current_pixel
+                };
+
                 let palette_lsb = Nes::get_tile_pixel_from_planes(
                     tile_first_plane,
                     tile_second_plane,
-                    current_pixel,
+                    pixel_to_render,
                 );
+
+                if palette_lsb == 0x0 {
+                    continue;
+                }
 
                 let palette_index = (palette_msb << 2) | (palette_lsb as u8);
 
-                if palette_index == 0 {
-                    continue;
-                }
                 // Nes palettes are 6 bit and the PPU only uses 6 bits to retrieve the value from
                 // the system palette
                 let palette_for_pixel =

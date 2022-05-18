@@ -88,7 +88,6 @@ impl<'a> Nes<'a> {
             0x2000..=0x3FFF => {
                 //This area is a mirror for 0x2000 - 0x2007
                 let ppu_io_addr = (addr - 0x2000) % 0x8;
-                println!("PPU read {:x}", ppu_io_addr + 0x2000);
                 return match ppu_io_addr {
                     //todo should panic?
                     0 | 1 | 3 | 5 | 6 => 0,
@@ -109,10 +108,7 @@ impl<'a> Nes<'a> {
                 };
             }
             //APU I/O
-            0x4000..=0x401F => {
-                println!("I/O");
-                0
-            }
+            0x4000..=0x401F => 0,
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => 0,
             //Cart RAM
@@ -146,7 +142,6 @@ impl<'a> Nes<'a> {
             0x2000..=0x3FFF => {
                 //This area is a mirror for 0x2000 - 0x2007
                 let ppu_io_addr = (addr - 0x2000) % 0x8;
-                println!("PPU write {:x}", ppu_io_addr + 0x2000);
                 return match ppu_io_addr {
                     0 => {
                         self.ppuctrl = PPUCTRL::from_bits_truncate(value);
