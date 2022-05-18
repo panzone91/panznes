@@ -25,10 +25,10 @@ impl<'a> Nes<'a> {
         self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
-        println!(
+        /*println!(
             "Executing {:x}: {:x} (a:{:x}, x:{:x}, y:{:x}, S:{:x}, P:{:x}  )",
             self.prog_counter, opcode, self.a, self.x, self.y, self.stack_ptr, self.flag
-        );
+        );*/
         self.prog_counter = self.prog_counter.wrapping_add(1);
 
         let cycles = match opcode {
