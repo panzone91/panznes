@@ -109,11 +109,12 @@ impl<'a> Nes<'a> {
     }
 
     fn write_sprites(&mut self, current_scanline: u16) {
-        // PPU has a 64 byte memory that works as a secondary OAM that contains
-        // the 8 sprites for this line. We starts by doing a binary search
+        // PPU has a 32 byte memory that works as a secondary OAM that contains
+        // the 8 sprites for this line. We start by doing a binary search
 
         let mut secondary_oam: [u8; 32] = [0; 32];
         let mut secondary_oam_index = 0;
+        //Sprites can be 8x8 or 8x16, based on PPUCTRL
         let sprite_size = self.get_sprite_size();
 
         for i in 0..=63 {
@@ -148,12 +149,15 @@ impl<'a> Nes<'a> {
             let sprite_attributes = secondary_oam[sprite_index + 2];
             let sprite_x_position = secondary_oam[sprite_index + 3];
 
-            //TODO NOT TRUE! The pattern table depends if 8x8 or 8x16 sprite!
-            let pattern_table: u16 = if sprite_size == 8 {
-                self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE)
-            } else {
-                (u16::from(sprite_tile_index) & 0x1) * 0x1000
-            };
+            let pattern_table: u16 =
+            // If sprite_size is 8, the pattern table depends of PPUCTRL bit
+            // If sprite_size if 16, the LSB of the index indicates the table
+                if sprite_size == 8 {
+                    self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE)
+                } else {
+                    (u16::from(sprite_tile_index) & 0x1) * 0x1000
+                };
+
             let tile_address = pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4);
 
             //TODO NOT TRUE! Depends if I must draw the sprite flipped
@@ -168,6 +172,7 @@ impl<'a> Nes<'a> {
             let palette_msb = sprite_attributes & 0x3;
 
             for current_pixel in 0..=7 {
+                //To handle pixel mirroring
                 let pixel_to_render = if sprite_attributes & 0x40 == 0 {
                     current_pixel
                 } else {
@@ -181,6 +186,7 @@ impl<'a> Nes<'a> {
                 );
 
                 if palette_lsb == 0x0 {
+                    //Transparent pixel -> nothing to do here
                     continue;
                 }
 
