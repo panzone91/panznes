@@ -134,16 +134,19 @@ impl<'a> Nes<'a> {
         //TODO handle sprite priority correctly
         for i in 0..number_sprites_scanline {
             let sprite_index = i * 4;
+            let sprite_y_position = secondary_oam[sprite_index];
             let sprite_tile_index = secondary_oam[sprite_index + 1];
             let sprite_attributes = secondary_oam[sprite_index + 2];
-            let x_position = secondary_oam[sprite_index + 3];
+            let sprite_x_position = secondary_oam[sprite_index + 3];
 
             //TODO NOT TRUE! The pattern table depends if 8x8 or 8x16 sprite!
             let pattern_table: u16 = self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE);
             let tile_address = pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4);
 
             //TODO NOT TRUE! Depends if I must draw the sprite flipped
-            let current_tile_row = current_scanline & 0x7;
+            let current_tile_row = current_scanline
+                .wrapping_sub(u16::from(sprite_y_position))
+                .wrapping_sub(1);
 
             let tile_row_address = tile_address.wrapping_add(current_tile_row);
             let tile_first_plane = self.read_ppu_byte(tile_row_address);
@@ -171,7 +174,7 @@ impl<'a> Nes<'a> {
                 let rgb_color = NES_PALETTE[palette_for_pixel as usize];
 
                 let index_screen =
-                    (256 * current_scanline) + u16::from(x_position) + current_pixel as u16;
+                    (256 * current_scanline) + u16::from(sprite_x_position) + current_pixel as u16;
                 self.screen[index_screen as usize] = rgb_color;
             }
         }

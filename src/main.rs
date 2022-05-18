@@ -8,6 +8,7 @@ use sdl2::render::WindowCanvas;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
+use std::ops::{Div, Sub};
 use std::rc::Rc;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -87,7 +88,7 @@ fn main() {
     nes.reset();
 
     let mut num_clock: u32 = 0;
-    const NUM_OP: u32 = 17897725;
+    const NUM_OP: u32 = 1789773;
     let mut execute = true;
 
     while execute == true {
@@ -112,15 +113,17 @@ fn main() {
         }
 
         num_clock -= NUM_OP / 60;
-        let end = SystemTime::now();
-        /*println!(
-            "Finished {}",
-            end.duration_since(start).unwrap().as_nanos() / 1000000
-        );*/
-        let delta_t: i128 = 16666666 - (end.duration_since(start).unwrap().as_nanos() as i128);
-        if delta_t > 0 {
-            //println!("Waiting {}", delta_t);
-            sleep(Duration::from_nanos(delta_t as u64));
+        let end = SystemTime::now()
+            .duration_since(start)
+            .expect("Frame duration negative");
+        println!("Finished {}", end.as_secs_f64());
+        let delta_t = Duration::from_secs_f64(f64::from(1).div(f64::from(60)))
+            .checked_sub(end)
+            .unwrap_or_default();
+        println!("DeltaT {}", delta_t.as_secs_f64());
+        if delta_t.as_millis() > 0 {
+            println!("Waiting {}", delta_t.as_millis());
+            sleep(delta_t);
         };
     }
 }
