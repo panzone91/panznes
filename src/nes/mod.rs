@@ -50,7 +50,7 @@ pub struct Nes<'a> {
     ppumask: PPUMASK,
     ppustatus: PPUSTATUS,
     oam_addr: u8,
-    oam_ram: [u8; 0xff],
+    oam_ram: [u8; 0x100],
 
     ppu_second_write: bool,
 
@@ -90,7 +90,7 @@ impl<'a> Nes<'a> {
             ppumask: PPUMASK::from_bits_truncate(0),
             ppustatus: PPUSTATUS::from_bits_truncate(0),
             oam_addr: 0,
-            oam_ram: [0x0; 0xff],
+            oam_ram: [0x0; 0x100],
 
             ppu_second_write: false,
 

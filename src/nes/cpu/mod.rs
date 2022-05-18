@@ -22,7 +22,12 @@ impl<'a> Nes<'a> {
             return self.raise_interrupt(Interrupt::NMI);
         }
 
-        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+        if self.request_dma == true {
+            self.dma_transfert();
+            self.request_dma = false;
+            return 512;
+        }
+
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
         /*println!(

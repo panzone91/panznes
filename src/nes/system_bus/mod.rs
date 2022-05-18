@@ -218,4 +218,11 @@ impl<'a> Nes<'a> {
         //TODO handle better for clock accuracy
         self.raised_nmi = true;
     }
+
+    pub(crate) fn dma_transfert(&mut self) {
+        let dma_src = self.dma_src;
+        for i in 0..=0xFF {
+            self.oam_ram[i] = self.read_cpu_byte(dma_src.wrapping_add(i as u16));
+        }
+    }
 }
