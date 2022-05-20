@@ -1738,7 +1738,7 @@ impl<'a> Nes<'a> {
     pub(super) fn conditional_jump(&mut self, instruction: &Instruction, condition: bool) -> u32 {
         let offset: i8 = self.read_instruction_operand_8bit() as i8;
         if condition == true {
-            let jump_addr = self.prog_counter.wrapping_add(offset as u16);
+            let jump_addr = (self.prog_counter as i32).wrapping_add(i32::from(offset)) as u16;
             let is_page_cross = Nes::is_page_cross(self.prog_counter, jump_addr);
             self.prog_counter = jump_addr;
             return if is_page_cross {

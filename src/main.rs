@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::cartridge::Cartridge;
 use crate::nes::{Nes, NesControllerButton};
 use sdl2::event::Event;
@@ -143,11 +145,11 @@ fn main() {
         let end = SystemTime::now()
             .duration_since(start)
             .expect("Frame duration negative");
-        //println!("Finished {}", end.as_secs_f64());
+        println!("Finished {}", end.as_secs_f64());
         let delta_t = Duration::from_secs_f64(f64::from(1).div(f64::from(60)))
             .checked_sub(end)
             .unwrap_or_default();
-        println!("DeltaT {}", delta_t.as_secs_f64());
+        //println!("DeltaT {}", delta_t.as_secs_f64());
         if delta_t.as_millis() > 0 {
             //println!("Waiting {}", delta_t.as_millis());
             sleep(delta_t);

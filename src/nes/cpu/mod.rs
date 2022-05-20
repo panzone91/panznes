@@ -1,6 +1,5 @@
 use crate::memory::Memory;
 use crate::nes::cpu::opcodes::OPCODES;
-use crate::nes::system_bus::PPUSTATUS;
 use crate::nes::{FlagRegister, Interrupt, Nes};
 
 mod opcodes;
@@ -30,10 +29,10 @@ impl<'a> Nes<'a> {
 
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
-        /*println!(
+        println!(
             "Executing {:x}: {:x} (a:{:x}, x:{:x}, y:{:x}, S:{:x}, P:{:x}  )",
             self.prog_counter, opcode, self.a, self.x, self.y, self.stack_ptr, self.flag
-        );*/
+        );
         self.prog_counter = self.prog_counter.wrapping_add(1);
 
         let cycles = match opcode {
@@ -86,7 +85,7 @@ impl<'a> Nes<'a> {
             0x48 => self.push(self.a),
 
             //PHP
-            0x08 => self.push(self.flag.bits),
+            0x08 => self.push(self.flag.bits | 0x30),
 
             //PLA
             0x68 => {
@@ -99,8 +98,7 @@ impl<'a> Nes<'a> {
             //PLP
             0x28 => {
                 let (value, cycles) = self.pop();
-                self.flag = FlagRegister::from_bits_truncate(value);
-                self.update_zero_and_negative_flags(self.flag.bits);
+                self.flag = FlagRegister::from_bits_truncate((value & 0xCF) | (self.flag.bits & 0x30) );
                 cycles
             }
 
@@ -274,7 +272,11 @@ impl<'a> Nes<'a> {
             //BRK
             0x00 => self.raise_interrupt(Interrupt::BREAK),
             //NOP
-            0xEA => instruction.cycles,
+            0xEA| 0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => instruction.cycles,
+            0x80 | 0x82 | 0x89 | 0xC2 | 0xE2 | 0x04 | 0x44 | 0x64 => {
+                self.read_instruction_operand_8bit();
+                3
+            },
             _ => todo!(),
         };
         return cycles;

@@ -1,6 +1,6 @@
+use bitflags::bitflags;
 use crate::nes::system_bus::{PPUCTRL, PPUMASK, PPUSTATUS};
 use crate::Cartridge;
-use bitflags::bitflags;
 
 mod cpu;
 mod ppu;
@@ -14,7 +14,7 @@ enum Interrupt {
 }
 
 bitflags! {
-    pub(self) struct FlagRegister: u8 {
+    struct FlagRegister: u8 {
         const CARRY             = 0b00000001;
         const ZERO              = 0b00000010;
         const IRQ_DISABLE       = 0b00000100;
@@ -30,17 +30,17 @@ pub struct Nes<'a> {
     // Registers
 
     //accumulator
-    pub(self) a: u8,
+    a: u8,
     //Index register x
-    pub(self) x: u8,
+    x: u8,
     //Index register y
-    pub(self) y: u8,
+    y: u8,
     //Stack pointer
-    pub(self) stack_ptr: u8,
+    stack_ptr: u8,
     //P (status)
-    pub(self) flag: FlagRegister,
+    flag: FlagRegister,
     //Program Counter
-    pub(self) prog_counter: u16,
+    prog_counter: u16,
 
     //Main WRAM
     cpu_memory: [u8; 0x800],
@@ -58,6 +58,10 @@ pub struct Nes<'a> {
     vertical_scroll_origin: u8,
 
     vram_addr: u16,
+    vram_data: u8,
+
+    chr_ram: [u8; 0x20000],
+
     ppu_memory: [u8; 0x10000],
 
     request_dma: bool,
@@ -113,6 +117,7 @@ impl<'a> Nes<'a> {
             vertical_scroll_origin: 0,
 
             vram_addr: 0x0,
+            vram_data: 0x0,
             ppu_memory: [0x0; 0x10000],
 
             request_dma: false,
@@ -127,7 +132,9 @@ impl<'a> Nes<'a> {
             screen: [0x0; 256 * 240],
             controller_first_port: [false; 8],
             first_port_strobing: false,
-            first_port_strobing_index: 0
+            first_port_strobing_index: 0,
+
+            chr_ram: [0; 0x20000],
         }
     }
 

@@ -1,3 +1,4 @@
+use crate::cartridge::CartridgeMirroring;
 use crate::Nes;
 
 impl <'a> Nes<'a> {
@@ -7,12 +8,21 @@ impl <'a> Nes<'a> {
         return match read_addr {
             //CHR_ROM
             //TODO This depends on cart mapping
-            0..=0x1FFF => self.cartridge.unwrap().chr_rom[read_addr as usize],
+            0..=0x1FFF => {
+                if self.cartridge.unwrap().chr_rom_size == 0 {
+                    self.chr_ram[read_addr as usize]
+                } else {
+                    self.cartridge.unwrap().chr_rom[read_addr as usize]
+                }
+            },
             //Nametables
-            //TODO this depends on cart mirroring!
             0x2000..=0x2FFF => {
-                let ppu_addr = read_addr - 0x2000;
-                self.ppu_memory[ppu_addr as usize]
+                let ppu_addr = match self.cartridge.expect("Missing cartridge").namespace_mirroring {
+                    CartridgeMirroring::HORIZONTAL => read_addr & 0xFBFF,
+                    CartridgeMirroring::VERTICAL => read_addr & 0xF7FF,
+                };
+
+                self.ppu_memory[ppu_addr.wrapping_sub(0x2000) as usize]
             }
             //Mirror of 0x2000 .. 0x2EFF
             0x3000..=0x3EFF => {
@@ -40,6 +50,7 @@ impl <'a> Nes<'a> {
             //CHR_ROM. Some carts use this area for bank switching
             //TODO This depends on cart mapping
             0..=0x1FFF => {
+                self.chr_ram[write_addr as usize] = value;
                 //TODO for now only mapping 0
             }
             //Nametables

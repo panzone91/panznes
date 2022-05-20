@@ -97,14 +97,16 @@ impl<'a> Nes<'a> {
                     4 => {
                         let oam_addr = self.oam_addr;
                         self.oam_ram[oam_addr as usize]
-                    }
+                    },
                     7 => {
+                        let old_data = self.vram_data;
                         let vram_addr = self.vram_addr;
                         let value = self.read_ppu_byte(vram_addr);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
                         self.vram_addr = vram_addr + if horizontal_increment { 1 } else { 32 };
-                        value
+                        self.vram_data = value;
+                        if vram_addr <= 0x3EFF {old_data} else {value}
                     }
                     _ => 0,
                 };
