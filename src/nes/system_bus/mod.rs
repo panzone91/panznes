@@ -1,5 +1,7 @@
 use crate::nes::{Interrupt, Nes};
 
+mod controller;
+
 use bitflags::bitflags;
 
 /*
@@ -108,8 +110,27 @@ impl<'a> Nes<'a> {
                 };
             }
             //APU I/O
-            0x4000..=0x401F => 0,
-            //Expansion ROM (only certain mappers
+            0x4000..=0x4013 => 0,
+            //DMA request, only write
+            0x4014 => 0,
+            //APU status
+            0x4015 => 0,
+            //Joypad 1 and strobing
+            0x4016 => {
+                return match self.first_port_strobing_index {
+                     0..=7 => {
+                         let is_pressed = self.controller_first_port[self.first_port_strobing_index];
+                         self.first_port_strobing_index+=1;
+                         return if is_pressed {0x1} else {0x0};
+                     },
+                    _ => 0,
+                };
+            },
+            //Joypad 2
+            0x4017 => 0,
+            //Used only on debug, disabled on commercial NES
+            0x4018..=0x401F => 0,
+            //Expansion ROM (only certain mappers)
             0x4020..=0x5FFF => 0,
             //Cart RAM
             0x6000..=0x7FFF => 0,
@@ -194,15 +215,28 @@ impl<'a> Nes<'a> {
                 };
             }
             //APU I/O
-            0x4000..=0x4013 | 0x4015..=0x401F => {}
+            0x4000..=0x4013 => {},
+            //DMA request
             0x4014 => {
                 self.request_dma = true;
                 self.dma_src = u16::from(value) << 8;
             }
+            //APU status
+            0x4015 => {},
+            //Joypad 1 and strobing
+            0x4016 => {
+                self.first_port_strobing = value & 0x1 != 0;
+                self.first_port_strobing_index = 0;
+            },
+            //Joypad 2
+            0x4017 => {},
+            //Used only on debug, disabled on commercial NES
+            0x4018..=0x401F => {},
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => {}
             //Cart RAM
             0x6000..=0x7FFF => {}
+            //PGR_ROM
             0x8000..=0xFFFF => {
                 //TODO this should be different for each cart
             }
