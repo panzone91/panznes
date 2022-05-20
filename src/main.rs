@@ -145,7 +145,7 @@ fn main() {
         let end = SystemTime::now()
             .duration_since(start)
             .expect("Frame duration negative");
-        println!("Finished {}", end.as_secs_f64());
+        //println!("Finished {}", end.as_secs_f64());
         let delta_t = Duration::from_secs_f64(f64::from(1).div(f64::from(60)))
             .checked_sub(end)
             .unwrap_or_default();

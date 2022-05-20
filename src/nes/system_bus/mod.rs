@@ -237,7 +237,10 @@ impl<'a> Nes<'a> {
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => {}
             //Cart RAM
-            0x6000..=0x7FFF => {}
+            0x6000..=0x7FFF => unsafe {
+                self.serial[addr as usize - 0x6000] = value;
+                //println!("{:?}", String::from_utf8_unchecked(self.serial[0..0x140].to_vec()));
+            }
             //PGR_ROM
             0x8000..=0xFFFF => {
                 //TODO this should be different for each cart

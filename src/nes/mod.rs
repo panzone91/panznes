@@ -76,7 +76,10 @@ pub struct Nes<'a> {
     pub screen: [u32; 256 * 240],
     controller_first_port: [bool; 8],
     first_port_strobing: bool,
-    first_port_strobing_index: usize
+    first_port_strobing_index: usize,
+
+
+    serial: [u8; 0x20000]
 }
 
 pub enum NesControllerButton {
@@ -135,6 +138,8 @@ impl<'a> Nes<'a> {
             first_port_strobing_index: 0,
 
             chr_ram: [0; 0x20000],
+            
+            serial: [0; 0x20000]
         }
     }
 

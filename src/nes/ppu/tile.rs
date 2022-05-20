@@ -10,7 +10,7 @@ impl<'a> Nes<'a> {
             1 => 0x2400,
             2 => 0x2800,
             3 => 0x2C00,
-            _ => panic!("Strange nametable")
+            _ => panic!("Error nametable")
         }
     }
 

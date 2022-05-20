@@ -1698,8 +1698,8 @@ impl<'a> Nes<'a> {
             0
         };
 
-        let mut rot_value = value << 1;
-        if (value & 0x80) != 0 {
+        let mut rot_value = value >> 1;
+        if (value & 0x01) != 0 {
             self.flag.insert(FlagRegister::CARRY)
         } else {
             self.flag.remove(FlagRegister::CARRY)
@@ -1721,7 +1721,7 @@ impl<'a> Nes<'a> {
         };
 
         let mut rot_value = self.a >> 1;
-        if (self.a & 0x80) != 0 {
+        if (self.a & 0x01) != 0 {
             self.flag.insert(FlagRegister::CARRY)
         } else {
             self.flag.remove(FlagRegister::CARRY)

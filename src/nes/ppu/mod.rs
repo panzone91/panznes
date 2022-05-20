@@ -146,12 +146,14 @@ impl<'a> Nes<'a> {
                     if self.ppumask.contains(PPUMASK::SPRITES_ENABLED) {
                         self.write_sprites(self.current_scanline as u16);
                     }
-                    self.current_scanline += 1
+                    self.current_scanline += 1;
+                    self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
                 }
                 240 => {
                     //set HBlank, check if NMI is active and raise
                     let mut ppustatus = self.ppustatus;
                     ppustatus.insert(PPUSTATUS::V_BLANK);
+                    ppustatus.remove(PPUSTATUS::SPRITE_0_HIT);
                     self.ppustatus = ppustatus;
 
                     let ppuctrl = self.ppuctrl;
