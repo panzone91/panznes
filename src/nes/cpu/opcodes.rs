@@ -1199,7 +1199,7 @@ pub const OPCODES: [Instruction; 256] = [
     Instruction {
         opcode: 0xEB,
         cycles: 2,
-        address_mode: AddressMode::Implied,
+        address_mode: AddressMode::Immediate,
     },
     Instruction {
         opcode: 0xEc,
@@ -1714,11 +1714,7 @@ impl<'a> Nes<'a> {
     }
 
     pub(super) fn ror_acc(&mut self) -> u32 {
-        let old_carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let old_carry = self.flag.contains(FlagRegister::CARRY);
 
         let mut rot_value = self.a >> 1;
         if (self.a & 0x01) != 0 {
@@ -1726,7 +1722,7 @@ impl<'a> Nes<'a> {
         } else {
             self.flag.remove(FlagRegister::CARRY)
         }
-        if old_carry == 1 {
+        if old_carry {
             rot_value = rot_value | 0x80
         }
 

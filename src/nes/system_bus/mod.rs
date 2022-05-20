@@ -239,7 +239,7 @@ impl<'a> Nes<'a> {
             //Cart RAM
             0x6000..=0x7FFF => unsafe {
                 self.serial[addr as usize - 0x6000] = value;
-                //println!("{:?}", String::from_utf8_unchecked(self.serial[0..0x140].to_vec()));
+                println!("{}", String::from_utf8_unchecked(self.serial[0..0x40].to_vec()));
             }
             //PGR_ROM
             0x8000..=0xFFFF => {

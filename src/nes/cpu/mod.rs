@@ -105,7 +105,7 @@ impl<'a> Nes<'a> {
             //ADC
             0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => self.adc(instruction),
             //SBC
-            0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => self.sbc(instruction),
+            0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 | 0xEB => self.sbc(instruction),
             //AND
             0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
                 self.logical_register_a(Nes::and, instruction)
@@ -176,7 +176,16 @@ impl<'a> Nes<'a> {
             }
             0x6C => {
                 let jump_addr_ptr = self.read_instruction_operand_16bit();
-                let jump_addr = self.read_word(jump_addr_ptr);
+                let jump_addr =
+                    if jump_addr_ptr & 0xFF == 0xFF {
+                        //This is an interesting glitch in NES CPU. If the operand is between two pages, the second byte is taken from
+                        //the head of the current page. In other words, we cannot do any page cross here.
+                        let be = self.read_cpu_byte(jump_addr_ptr);
+                        let msb = self.read_cpu_byte(jump_addr_ptr & 0xF0);
+                        (u16::from(msb) << 8) | u16::from(be)
+                    } else {
+                        self.read_word(jump_addr_ptr)
+                    };
                 self.prog_counter = jump_addr;
                 5
             }
@@ -277,7 +286,7 @@ impl<'a> Nes<'a> {
                 self.read_instruction_operand_8bit();
                 3
             },
-            _ => 2,
+            _ => todo!(),
         };
         return cycles;
     }
