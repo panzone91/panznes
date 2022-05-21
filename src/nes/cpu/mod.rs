@@ -286,6 +286,11 @@ impl<'a> Nes<'a> {
                 self.read_instruction_operand_8bit();
                 3
             },
+            //Illegal opcodes
+            0x0b | 0x2B | 0x4B | 0x6B | 0xCB | 0xAB => {
+                let operand = self.read_instruction_operand_8bit();
+                2
+            }
             _ => todo!(),
         };
         return cycles;

@@ -1496,14 +1496,45 @@ impl<'a> Nes<'a> {
     }
 
     pub(super) fn sub(a: u8, carry: u8, data: u8) -> u16 {
-        u16::from(a)
-            .wrapping_add(u16::from(carry))
-            .wrapping_sub(1)
-            .wrapping_sub(u16::from(data))
+        Nes::add(a, carry, data ^ 0xFF)
     }
 
+    //TODO refactor
     pub(super) fn sbc(&mut self, instruction: &Instruction) -> u32 {
-        self.arithmetic_register_a(Nes::sub, instruction)
+        let (operand, is_page_cross) = self.get_operand_address(&instruction.address_mode);
+        let carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
+            1
+        } else {
+            0
+        };
+
+        let value = self.read_byte(operand) ^ 0xFF;
+
+        let result_16bit =  u16::from(self.a).wrapping_add(u16::from(carry)).wrapping_add(u16::from(value));
+        let result_8bit = result_16bit as u8;
+
+        //Handle flags
+        if result_16bit > 0xff {
+            self.flag.insert(FlagRegister::CARRY)
+        } else {
+            self.flag.remove(FlagRegister::CARRY)
+        }
+        //If the two sign bits from a and value are the same but result is different we have overflow
+        if (self.a ^ result_8bit) & (value ^ result_8bit) & 0x80 != 0 {
+            self.flag.insert(FlagRegister::OVERFLOW);
+        } else {
+            self.flag.remove(FlagRegister::OVERFLOW);
+        }
+
+        self.update_zero_and_negative_flags(result_8bit);
+
+        //Update result
+        self.a = result_8bit;
+        return if is_page_cross {
+            instruction.cycles + 1
+        } else {
+            instruction.cycles
+        };
     }
 
     pub(super) fn logical_register_a(

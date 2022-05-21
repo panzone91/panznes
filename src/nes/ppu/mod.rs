@@ -131,11 +131,11 @@ impl<'a> Nes<'a> {
     }
 
     pub fn execute_ppu(&mut self, cpu_cycles: u32) {
-        let ppu_cycles = cpu_cycles as i32 * 3;
-        let clock_current_scanline = self.clock_current_scanline - ppu_cycles;
+        let ppu_cycles = cpu_cycles * 3;
+        let clock_current_scanline = self.clock_current_scanline.wrapping_add(ppu_cycles);
 
         self.clock_current_scanline = clock_current_scanline;
-        if clock_current_scanline <= 0 {
+        if clock_current_scanline >= 341 {
             //new scanline!
             match self.current_scanline {
                 0..=239 => {
@@ -147,7 +147,7 @@ impl<'a> Nes<'a> {
                         self.write_sprites(self.current_scanline as u16);
                     }
                     self.current_scanline += 1;
-                    self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+                    //self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
                 }
                 240 => {
                     //set HBlank, check if NMI is active and raise
@@ -175,7 +175,7 @@ impl<'a> Nes<'a> {
                     panic!("Bad scanline")
                 }
             }
-            self.clock_current_scanline += 341;
+            self.clock_current_scanline -= 341;
         }
     }
 }

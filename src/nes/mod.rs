@@ -68,7 +68,7 @@ pub struct Nes<'a> {
     dma_src: u16,
 
     current_scanline: u32,
-    clock_current_scanline: i32,
+    clock_current_scanline: u32,
 
     raised_nmi: bool,
     palettes: [u8; 0x20],
