@@ -2,9 +2,9 @@ use crate::nes::ppu::palette::NES_PALETTE;
 use crate::nes::system_bus::{PPUCTRL, PPUMASK, PPUSTATUS};
 use crate::nes::Nes;
 
-mod tile;
 mod memory;
 mod palette;
+mod tile;
 
 impl<'a> Nes<'a> {
     fn get_active_pattern_table(&mut self, bit: PPUCTRL) -> u16 {
@@ -123,9 +123,12 @@ impl<'a> Nes<'a> {
 
                 let rgb_color = NES_PALETTE[palette_for_pixel as usize];
 
-                let index_screen =
-                    (256 * current_scanline) + u16::from(sprite_x_position) + current_pixel as u16;
-                self.screen[index_screen as usize] = rgb_color;
+                let x_pos = u16::from(sprite_x_position).wrapping_add(u16::from(current_pixel));
+
+                if x_pos < 256 {
+                    let index_screen = (256 * current_scanline) + x_pos;
+                    self.screen[index_screen as usize] = rgb_color;
+                }
             }
         }
     }
@@ -141,7 +144,8 @@ impl<'a> Nes<'a> {
                 0..=239 => {
                     //TODO maybe I should emulate the PPU clock by clock?
                     if self.ppumask.contains(PPUMASK::BACKGROUND_ENABLED) {
-                        self.write_background(self.current_scanline as u16);
+                        self.render_tiles(self.current_scanline as u16);
+                        //self.write_background(self.current_scanline as u16);
                     }
                     if self.ppumask.contains(PPUMASK::SPRITES_ENABLED) {
                         self.write_sprites(self.current_scanline as u16);

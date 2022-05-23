@@ -1,7 +1,7 @@
 use crate::cartridge::CartridgeMirroring;
 use crate::Nes;
 
-impl <'a> Nes<'a> {
+impl<'a> Nes<'a> {
     pub(crate) fn read_ppu_byte(&mut self, addr: u16) -> u8 {
         let read_addr = addr & 0x3FFF;
 
@@ -14,10 +14,14 @@ impl <'a> Nes<'a> {
                 } else {
                     self.cartridge.unwrap().chr_rom[read_addr as usize]
                 }
-            },
+            }
             //Nametables
             0x2000..=0x2FFF => {
-                let ppu_addr = match self.cartridge.expect("Missing cartridge").namespace_mirroring {
+                let ppu_addr = match self
+                    .cartridge
+                    .expect("Missing cartridge")
+                    .namespace_mirroring
+                {
                     CartridgeMirroring::HORIZONTAL => read_addr & 0xFBFF,
                     CartridgeMirroring::VERTICAL => read_addr & 0xF7FF,
                 };
@@ -32,7 +36,12 @@ impl <'a> Nes<'a> {
             //Palettes area
             0x3F00..=0x3F1F => {
                 let palette_addr = read_addr & 0x1F;
-                self.palettes[palette_addr as usize]
+                match palette_addr {
+                    0x10 | 0x14 | 0x18 | 0x1C => {
+                        self.palettes[palette_addr.wrapping_sub(0x10) as usize]
+                    }
+                    _ => self.palettes[palette_addr as usize],
+                }
             }
             //Mirror of 3F00 .. 0x3F1F
             0x3F20..=0x3FFF => {
@@ -56,8 +65,16 @@ impl <'a> Nes<'a> {
             //Nametables
             //TODO this depends on cart mirroring!
             0x2000..=0x2FFF => {
-                let ppu_addr = write_addr - 0x2000;
-                self.ppu_memory[ppu_addr as usize] = value;
+                let ppu_addr = match self
+                    .cartridge
+                    .expect("Missing cartridge")
+                    .namespace_mirroring
+                {
+                    CartridgeMirroring::HORIZONTAL => write_addr & 0xFBFF,
+                    CartridgeMirroring::VERTICAL => write_addr & 0xF7FF,
+                };
+
+                self.ppu_memory[ppu_addr.wrapping_sub(0x2000) as usize] = value;
             }
             //Mirror of 0x2000 .. 0x2EFF
             0x3000..=0x3EFF => {
@@ -67,6 +84,16 @@ impl <'a> Nes<'a> {
             //Palettes area
             0x3F00..=0x3F1F => {
                 let palette_addr = write_addr & 0x1F;
+                match palette_addr {
+                    0x10 | 0x14 | 0x18 | 0x1C => {
+                        self.palettes[palette_addr as usize] = value;
+                        self.palettes[palette_addr.wrapping_sub(0x10) as usize] = value;
+                    }
+                    _ => {
+                        self.palettes[palette_addr as usize] = value;
+                    }
+                }
+
                 self.palettes[palette_addr as usize] = value;
             }
             //Mirror of 3F00 .. 0x3F1F

@@ -97,7 +97,7 @@ impl<'a> Nes<'a> {
                     4 => {
                         let oam_addr = self.oam_addr;
                         self.oam_ram[oam_addr as usize]
-                    },
+                    }
                     7 => {
                         let old_data = self.vram_data;
                         let vram_addr = self.vram_addr;
@@ -106,7 +106,11 @@ impl<'a> Nes<'a> {
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
                         self.vram_addr = vram_addr + if horizontal_increment { 1 } else { 32 };
                         self.vram_data = value;
-                        if vram_addr <= 0x3EFF {old_data} else {value}
+                        if vram_addr <= 0x3EFF {
+                            old_data
+                        } else {
+                            value
+                        }
                     }
                     _ => 0,
                 };
@@ -120,14 +124,14 @@ impl<'a> Nes<'a> {
             //Joypad 1 and strobing
             0x4016 => {
                 return match self.first_port_strobing_index {
-                     0..=7 => {
-                         let is_pressed = self.controller_first_port[self.first_port_strobing_index];
-                         self.first_port_strobing_index+=1;
-                         return if is_pressed {0x1} else {0x0};
-                     },
+                    0..=7 => {
+                        let is_pressed = self.controller_first_port[self.first_port_strobing_index];
+                        self.first_port_strobing_index += 1;
+                        return if is_pressed { 0x1 } else { 0x0 };
+                    }
                     _ => 0,
                 };
-            },
+            }
             //Joypad 2
             0x4017 => 0,
             //Used only on debug, disabled on commercial NES
@@ -185,7 +189,8 @@ impl<'a> Nes<'a> {
                     5 => {
                         let second_write = self.ppu_second_write;
                         if second_write {
-                            self.vertical_scroll_origin = value
+                            self.vertical_scroll_origin =
+                                if value > 0xf0 { value - 0xf0 } else { value }
                         } else {
                             self.horizontal_scroll_origin = value
                         }
@@ -195,7 +200,7 @@ impl<'a> Nes<'a> {
                         let second_write = self.ppu_second_write;
                         let addr = self.vram_addr;
                         let new_addr = if !second_write {
-                            (value as u16 & 0x3F) << 8
+                            (value as u16 & 0x3f) << 8
                         } else {
                             addr | u16::from(value)
                         };
@@ -208,7 +213,8 @@ impl<'a> Nes<'a> {
                         self.write_ppu_byte(vram_addr, value);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
-                        self.vram_addr = vram_addr + if horizontal_increment { 32 } else { 1 };
+                        self.vram_addr =
+                            vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 });
                     }
                     2 => {
                         //NOP
@@ -217,30 +223,30 @@ impl<'a> Nes<'a> {
                 };
             }
             //APU I/O
-            0x4000..=0x4013 => {},
+            0x4000..=0x4013 => {}
             //DMA request
             0x4014 => {
                 self.request_dma = true;
                 self.dma_src = u16::from(value) << 8;
             }
             //APU status
-            0x4015 => {},
+            0x4015 => {}
             //Joypad 1 and strobing
             0x4016 => {
                 self.first_port_strobing = value & 0x1 != 0;
                 self.first_port_strobing_index = 0;
-            },
+            }
             //Joypad 2
-            0x4017 => {},
+            0x4017 => {}
             //Used only on debug, disabled on commercial NES
-            0x4018..=0x401F => {},
+            0x4018..=0x401F => {}
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => {}
             //Cart RAM
             0x6000..=0x7FFF => unsafe {
                 self.serial[addr as usize - 0x6000] = value;
                 //println!("{}", String::from_utf8_unchecked(self.serial[0..0x40].to_vec()));
-            }
+            },
             //PGR_ROM
             0x8000..=0xFFFF => {
                 //TODO this should be different for each cart

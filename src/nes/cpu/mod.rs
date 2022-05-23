@@ -29,10 +29,10 @@ impl<'a> Nes<'a> {
 
         let opcode = self.read_byte(self.prog_counter);
         let instruction = &OPCODES[opcode as usize];
-        /*println!(
+        println!(
             "Executing {:x}: {:x} (a:{:x}, x:{:x}, y:{:x}, S:{:x}, P:{:x}  )",
             self.prog_counter, opcode, self.a, self.x, self.y, self.stack_ptr, self.flag
-        );*/
+        );
         self.prog_counter = self.prog_counter.wrapping_add(1);
 
         let cycles = match opcode {
@@ -98,7 +98,8 @@ impl<'a> Nes<'a> {
             //PLP
             0x28 => {
                 let (value, cycles) = self.pop();
-                self.flag = FlagRegister::from_bits_truncate((value & 0xCF) | (self.flag.bits & 0x30) );
+                self.flag =
+                    FlagRegister::from_bits_truncate((value & 0xCF) | (self.flag.bits & 0x30));
                 cycles
             }
 
@@ -176,16 +177,15 @@ impl<'a> Nes<'a> {
             }
             0x6C => {
                 let jump_addr_ptr = self.read_instruction_operand_16bit();
-                let jump_addr =
-                    if jump_addr_ptr & 0xFF == 0xFF {
-                        //This is an interesting glitch in NES CPU. If the operand is between two pages, the second byte is taken from
-                        //the head of the current page. In other words, we cannot do any page cross here.
-                        let be = self.read_cpu_byte(jump_addr_ptr);
-                        let msb = self.read_cpu_byte(jump_addr_ptr & 0xF0);
-                        (u16::from(msb) << 8) | u16::from(be)
-                    } else {
-                        self.read_word(jump_addr_ptr)
-                    };
+                let jump_addr = if jump_addr_ptr & 0xFF == 0xFF {
+                    //This is an interesting glitch in NES CPU. If the operand is between two pages, the second byte is taken from
+                    //the head of the current page. In other words, we cannot do any page cross here.
+                    let be = self.read_cpu_byte(jump_addr_ptr);
+                    let msb = self.read_cpu_byte(jump_addr_ptr & 0xF0);
+                    (u16::from(msb) << 8) | u16::from(be)
+                } else {
+                    self.read_word(jump_addr_ptr)
+                };
                 self.prog_counter = jump_addr;
                 5
             }
@@ -281,11 +281,11 @@ impl<'a> Nes<'a> {
             //BRK
             0x00 => self.raise_interrupt(Interrupt::BREAK),
             //NOP
-            0xEA| 0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => instruction.cycles,
+            0xEA | 0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => instruction.cycles,
             0x80 | 0x82 | 0x89 | 0xC2 | 0xE2 | 0x04 | 0x44 | 0x64 => {
                 self.read_instruction_operand_8bit();
                 3
-            },
+            }
             //Illegal opcodes
             0x0b | 0x2B | 0x4B | 0x6B | 0xCB | 0xAB => {
                 let operand = self.read_instruction_operand_8bit();
