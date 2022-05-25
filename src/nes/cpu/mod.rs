@@ -22,8 +22,8 @@ impl<'a> Nes<'a> {
         }
 
         if self.request_dma == true {
-            self.dma_transfert();
             self.request_dma = false;
+            self.dma_transfert();
             return 512;
         }
 

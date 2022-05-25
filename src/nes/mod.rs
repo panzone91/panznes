@@ -1,6 +1,6 @@
-use bitflags::bitflags;
-use crate::nes::system_bus::{PPUCTRL, PPUMASK, PPUSTATUS};
+use crate::nes::ppu::registers::{PPUCTRL, PPUMASK, PPUSTATUS};
 use crate::Cartridge;
+use bitflags::bitflags;
 
 mod cpu;
 mod ppu;
@@ -78,8 +78,7 @@ pub struct Nes<'a> {
     first_port_strobing: bool,
     first_port_strobing_index: usize,
 
-
-    serial: [u8; 0x20000]
+    serial: [u8; 0x20000],
 }
 
 pub enum NesControllerButton {
@@ -90,9 +89,8 @@ pub enum NesControllerButton {
     UP,
     DOWN,
     LEFT,
-    RIGHT
+    RIGHT,
 }
-
 
 impl<'a> Nes<'a> {
     pub fn create_nes() -> Nes<'a> {
@@ -138,11 +136,10 @@ impl<'a> Nes<'a> {
             first_port_strobing_index: 0,
 
             chr_ram: [0; 0x20000],
-            
-            serial: [0; 0x20000]
+
+            serial: [0; 0x20000],
         }
     }
-
 
     pub fn insert_cartdrige(&mut self, cart: &'a Cartridge) {
         self.cartridge = Some(cart);
