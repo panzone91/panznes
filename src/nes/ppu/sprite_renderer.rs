@@ -7,11 +7,10 @@ impl<'a> Nes<'a> {
         // PPU has a 32 byte memory that works as a secondary OAM that contains
         // the 8 sprites for this line. We start by doing a linear search
 
-        let mut secondary_oam: [u8; 32] = [0; 32];
+        let mut secondary_oam: [u8; 8] = [0; 8];
         let mut secondary_oam_index = 0;
         //Sprites can be 8x8 or 8x16, based on PPUCTRL
         let sprite_size = self.get_sprite_size();
-
         for i in 0..=63 {
             // A sprite is composed by 4 bytes:
             // Byte 0 = y position - 1
@@ -23,26 +22,24 @@ impl<'a> Nes<'a> {
             let y_pos = (self.oam_ram[current_sprite_y_index] as u16).wrapping_add(1);
 
             if current_scanline >= y_pos && current_scanline < (y_pos + sprite_size) {
-                if secondary_oam_index == 32 {
+                if secondary_oam_index == 8 {
                     //There are more than 8 sprites on this line -> sprite overflow
                     self.ppustatus.insert(PPUSTATUS::SPRITE_OVERFLOW);
                 } else {
-                    secondary_oam[secondary_oam_index..=secondary_oam_index + 3].copy_from_slice(
-                        &self.oam_ram[current_sprite_y_index..=current_sprite_y_index + 3],
-                    );
-                    secondary_oam_index += 4;
+                    secondary_oam[secondary_oam_index] = current_sprite_y_index as u8;
+                    secondary_oam_index += 1;
                 }
             }
         }
-        let number_sprites_scanline = secondary_oam_index / 4;
+        let number_sprites_scanline = secondary_oam_index;
         //TODO handle sprite 0 hit
         //TODO handle sprite priority correctly
         for i in 0..number_sprites_scanline {
-            let sprite_index = i * 4;
-            let sprite_y_position = secondary_oam[sprite_index];
-            let sprite_tile_index = secondary_oam[sprite_index + 1];
-            let sprite_attributes = secondary_oam[sprite_index + 2];
-            let sprite_x_position = secondary_oam[sprite_index + 3];
+            let sprite_index = secondary_oam[i] as usize;
+            let sprite_y_position = self.oam_ram[sprite_index];
+            let sprite_tile_index = self.oam_ram[sprite_index + 1];
+            let sprite_attributes = self.oam_ram[sprite_index + 2];
+            let sprite_x_position = self.oam_ram[sprite_index + 3];
 
             let pattern_table: u16 =
                 // If sprite_size is 8, the pattern table depends of PPUCTRL bit
@@ -86,19 +83,14 @@ impl<'a> Nes<'a> {
                 }
 
                 let palette_index = (palette_msb << 2) | (palette_lsb as u8);
-
-                // Nes palettes are 6 bit and the PPU only uses 6 bits to retrieve the value from
-                // the system palette
-                let palette_for_pixel =
-                    self.read_ppu_byte(0x3F10 + u16::from(palette_index)) & 0x3F;
-
-                let rgb_color = NES_PALETTE[palette_for_pixel as usize];
-
                 let x_pos = u16::from(sprite_x_position).wrapping_add(u16::from(current_pixel));
 
                 if x_pos < 256 {
-                    let index_screen = (256 * current_scanline) + x_pos;
-                    self.screen[index_screen as usize] = rgb_color;
+                    self.render_pixel(
+                        0x3F10 + u16::from(palette_index),
+                        x_pos as u8,
+                        current_scanline as u8,
+                    )
                 }
             }
         }

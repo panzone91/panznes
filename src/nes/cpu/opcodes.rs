@@ -788,7 +788,7 @@ pub const OPCODES: [Instruction; 256] = [
     },
     Instruction {
         opcode: 0x99,
-        cycles: 6,
+        cycles: 5,
         address_mode: AddressMode::AbsoluteY,
     },
     Instruction {
@@ -1419,13 +1419,9 @@ impl<'a> Nes<'a> {
     }
 
     pub(super) fn st(&mut self, var: u8, opcode: &Instruction) -> u32 {
-        let (operand, is_page_cross) = self.get_operand_address(&opcode.address_mode);
+        let (operand, _) = self.get_operand_address(&opcode.address_mode);
         self.write_byte(operand, var);
-        return if is_page_cross {
-            opcode.cycles + 1
-        } else {
-            opcode.cycles
-        }; //Based on opcode
+        return opcode.cycles;
     }
 
     const STACK_PAGE: u16 = 0x100;
@@ -1510,7 +1506,9 @@ impl<'a> Nes<'a> {
 
         let value = self.read_byte(operand) ^ 0xFF;
 
-        let result_16bit =  u16::from(self.a).wrapping_add(u16::from(carry)).wrapping_add(u16::from(value));
+        let result_16bit = u16::from(self.a)
+            .wrapping_add(u16::from(carry))
+            .wrapping_add(u16::from(value));
         let result_8bit = result_16bit as u8;
 
         //Handle flags

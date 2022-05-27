@@ -79,7 +79,14 @@ impl<'a> Nes<'a> {
             };
 
             for i in pixels_to_draw {
-                self.render_pixel(pixels[i as usize], current_pixel, current_scanline as u8);
+                //If using palette 0 the pixel is transparent -> use default color
+                //TODO maybe this part should be done by
+                let palette_address = if pixels[i as usize] & 0x3 == 0 {
+                    0x3F00
+                } else {
+                    0x3F00 + u16::from(pixels[i as usize])
+                };
+                self.render_pixel(palette_address, current_pixel, current_scanline as u8);
                 current_pixel = current_pixel.wrapping_add(1);
             }
         }
@@ -122,24 +129,5 @@ impl<'a> Nes<'a> {
             pixels[i] = (palette_msb << 2) | (palette_lsb as u8);
         }
         return pixels;
-    }
-
-    fn render_pixel(&mut self, palette: u8, x: u8, y: u8) {
-        //If using palette 0 the pixel is transparent -> use default color
-        let palette_address = if palette & 0x3 == 0 {
-            0x3F00
-        } else {
-            0x3F00 + u16::from(palette)
-        };
-
-        // Nes palettes are 6 bit and the PPU only uses 6 bits to retrieve the value from
-        // the system palette
-        let palette_for_pixel = self.read_ppu_byte(palette_address) & 0x3F;
-
-        let rgb_color = NES_PALETTE[palette_for_pixel as usize];
-
-        //Nes screen is 256x240
-        let index_screen = u16::from(y).mul(256).wrapping_add(u16::from(x));
-        self.screen[index_screen as usize] = rgb_color;
     }
 }
