@@ -26,7 +26,9 @@ impl<'a> Nes<'a> {
                         self.render_sprites(self.current_scanline as u16);
                     }
                     self.current_scanline += 1;
-                    self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+                    if self.current_scanline == 31 {
+                        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+                    }
                 }
                 240 => {
                     self.current_scanline += 1;
