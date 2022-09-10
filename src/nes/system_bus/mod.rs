@@ -28,7 +28,8 @@ impl<'a> Nes<'a> {
                         let value = self.read_ppu_byte(vram_addr);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
-                        self.vram_addr = vram_addr + if horizontal_increment { 32 } else { 1 };
+                        self.vram_addr =
+                            vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 });
                         self.vram_data = value;
                         if vram_addr <= 0x3EFF {
                             old_data
