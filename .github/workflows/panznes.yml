@@ -9,13 +9,10 @@ env:
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
-
     strategy:
         matrix:
             os: [ubuntu-latest, windows-latest, macos-latest]
-
     steps:
     - uses: actions/checkout@v3
     - name: Cache
@@ -38,3 +35,26 @@ jobs:
           target/release/panznes*
           !target/release/panznes.d
           !target/release/panznes.pdb
+  release:
+    permissions: write-all
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Prepare artifacts for Release
+        run: |
+          ls -R
+          mv panznes-Linux/panznes panznes-linux-amd64
+          mv panznes-macOS/panznes panznes-macos-amd64
+          mv panznes-Windows/panznes.exe panznes-windows-amd64.exe
+          rm -rf panznes-Linux panznes-macOS panznes-Windows
+      - name: Create Release
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          artifacts: panznes-*
+          allowUpdates: true
+          name: "latest"
+          removeArtifacts: true
+          replacesArtifacts: true
+          tag: "latest"
+
