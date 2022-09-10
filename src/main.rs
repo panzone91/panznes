@@ -66,6 +66,7 @@ fn convert_keycode_to_nes(key: Option<Keycode>) -> Option<NesControllerButton> {
 }
 
 fn main() {
+    //TODO improve this part
     let args: Vec<String> = env::args().collect();
 
     let path = &args.get(1).expect("Missing ROM filename");
