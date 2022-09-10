@@ -86,6 +86,9 @@ impl<'a> Nes<'a> {
                 };
                 self.render_pixel(palette_address, current_pixel, current_scanline as u8);
                 current_pixel = current_pixel.wrapping_add(1);
+                self.background_hit_flag
+                    [current_pixel as usize + (current_scanline as usize * 256)] =
+                    palette_address != 0x3F00;
             }
         }
     }

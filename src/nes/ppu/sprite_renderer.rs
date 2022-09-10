@@ -1,5 +1,6 @@
 use crate::nes::ppu::registers::{PPUCTRL, PPUSTATUS};
 use crate::Nes;
+use std::ops::Mul;
 
 impl<'a> Nes<'a> {
     pub(super) fn render_sprites(&mut self, current_scanline: u16) {
@@ -39,6 +40,9 @@ impl<'a> Nes<'a> {
             let sprite_tile_index = self.oam_ram[sprite_index + 1];
             let sprite_attributes = self.oam_ram[sprite_index + 2];
             let sprite_x_position = self.oam_ram[sprite_index + 3];
+
+            //If 0, the sprite is in front at the backgroud
+            let sprite_priority = (sprite_attributes & 0x20) == 0;
 
             let pattern_table: u16 =
                 // If sprite_size is 8, the pattern table depends of PPUCTRL bit
@@ -85,11 +89,20 @@ impl<'a> Nes<'a> {
                 let x_pos = u16::from(sprite_x_position).wrapping_add(u16::from(current_pixel));
 
                 if x_pos < 256 {
-                    self.render_pixel(
-                        0x3F10 + u16::from(palette_index),
-                        x_pos as u8,
-                        current_scanline as u8,
-                    )
+                    let index_screen = u16::from(current_scanline)
+                        .mul(256)
+                        .wrapping_add(u16::from(x_pos));
+
+                    let has_background = self.background_hit_flag[index_screen as usize];
+
+                    //I must draw the pixel only if there isn't a background pixel or if the sprite is in front background
+                    if !has_background || sprite_priority {
+                        self.render_pixel(
+                            0x3F10 + u16::from(palette_index),
+                            x_pos as u8,
+                            current_scanline as u8,
+                        );
+                    }
                 }
             }
         }

@@ -72,6 +72,8 @@ pub struct Nes<'a> {
     palettes: [u8; 0x20],
 
     pub screen: [u32; 256 * 240],
+    background_hit_flag: [bool; 256 * 240],
+
     controller_first_port: [bool; 8],
     first_port_strobing: bool,
     first_port_strobing_index: usize,
@@ -129,6 +131,7 @@ impl<'a> Nes<'a> {
 
             palettes: [0x0; 0x20],
             screen: [0x0; 256 * 240],
+            background_hit_flag: [false; 256 * 240],
             controller_first_port: [false; 8],
             first_port_strobing: false,
             first_port_strobing_index: 0,
