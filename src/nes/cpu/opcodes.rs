@@ -1491,10 +1491,6 @@ impl<'a> Nes<'a> {
         return self.arithmetic_register_a(Nes::add, instruction);
     }
 
-    pub(super) fn sub(a: u8, carry: u8, data: u8) -> u16 {
-        Nes::add(a, carry, data ^ 0xFF)
-    }
-
     //TODO refactor
     pub(super) fn sbc(&mut self, instruction: &Instruction) -> u32 {
         let (operand, is_page_cross) = self.get_operand_address(&instruction.address_mode);
@@ -1777,19 +1773,9 @@ impl<'a> Nes<'a> {
     }
 
     pub(in crate::nes) fn raise_interrupt(&mut self, interrupt_type: Interrupt) -> u32 {
-        if matches!(interrupt_type, Interrupt::IRQ) && self.flag.contains(FlagRegister::IRQ_DISABLE)
-        {
-            return 0;
-        }
-
-        if matches!(interrupt_type, Interrupt::IRQ) {
-            self.reset();
-            return 7;
-        }
-
         let break_flag = match interrupt_type {
-            Interrupt::IRQ | Interrupt::NMI => 0,
-            Interrupt::RESET | Interrupt::BREAK => 1,
+            Interrupt::NMI => 0,
+            Interrupt::BREAK => 1,
         };
         if break_flag != 0 {
             self.flag.insert(FlagRegister::BREAK)
@@ -1806,9 +1792,8 @@ impl<'a> Nes<'a> {
         self.flag.insert(FlagRegister::IRQ_DISABLE);
 
         let interrupt_routine = match interrupt_type {
-            Interrupt::IRQ | Interrupt::BREAK => 0xFFFE,
+            Interrupt::BREAK => 0xFFFE,
             Interrupt::NMI => 0xFFFA,
-            Interrupt::RESET => 0xFFFC,
         };
         let interrupt_fn = self.read_word(interrupt_routine);
         self.prog_counter = interrupt_fn;

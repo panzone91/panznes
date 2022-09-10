@@ -1,36 +1,25 @@
 extern crate core;
 
 use crate::cartridge::Cartridge;
+use crate::nes::NesControllerButton::START;
 use crate::nes::{Nes, NesControllerButton};
+use crate::NesControllerButton::{A, B, DOWN, LEFT, RIGHT, SELECT, UP};
 use sdl2::event::Event;
-use sdl2::libc::exit;
-use sdl2::pixels::{Color, PixelFormat};
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
-use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
-use std::ops::{Div, Sub};
-use std::rc::Rc;
+use std::ops::Div;
 use std::thread::sleep;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use std::{env, fs};
-use sdl2::keyboard::Keycode;
-use sdl2::Sdl;
-use crate::nes::NesControllerButton::START;
-use crate::NesControllerButton::{A, B, DOWN, LEFT, RIGHT, SELECT, UP};
 
 pub mod cartridge;
 pub mod memory;
 
 pub mod nes;
-
-fn get_tick() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Error")
-        .as_nanos()
-}
 
 fn draw_screen(canvas: &mut WindowCanvas, screen_pixels_rgba: &[u32; 256 * 240]) {
     let scaling = 3;
@@ -61,7 +50,7 @@ fn draw_screen(canvas: &mut WindowCanvas, screen_pixels_rgba: &[u32; 256 * 240])
     canvas.present();
 }
 
-fn convert_keycode_to_nes (key: Option<Keycode>) -> Option<NesControllerButton>{
+fn convert_keycode_to_nes(key: Option<Keycode>) -> Option<NesControllerButton> {
     match key {
         Some(Keycode::Up) => Some(UP),
         Some(Keycode::Down) => Some(DOWN),
@@ -72,7 +61,7 @@ fn convert_keycode_to_nes (key: Option<Keycode>) -> Option<NesControllerButton>{
         Some(Keycode::Return) => Some(START),
         Some(Keycode::Backspace) => Some(SELECT),
         Some(_) => None,
-        _ => None
+        _ => None,
     }
 }
 
@@ -128,15 +117,19 @@ fn main() {
             match event {
                 Event::Quit { .. } => {
                     execute = false;
-                },
+                }
                 Event::KeyUp { keycode, .. } => {
                     let nes_button = convert_keycode_to_nes(keycode);
-                    if nes_button.is_some() {nes.set_controller_status(nes_button.unwrap(), false)}
-                },
+                    if nes_button.is_some() {
+                        nes.set_controller_status(nes_button.unwrap(), false)
+                    }
+                }
                 Event::KeyDown { keycode, .. } => {
                     let nes_button = convert_keycode_to_nes(keycode);
-                    if nes_button.is_some() {nes.set_controller_status(nes_button.unwrap(), true)}
-                },
+                    if nes_button.is_some() {
+                        nes.set_controller_status(nes_button.unwrap(), true)
+                    }
+                }
                 _ => {}
             }
         }
@@ -145,13 +138,10 @@ fn main() {
         let end = SystemTime::now()
             .duration_since(start)
             .expect("Frame duration negative");
-        //println!("Finished {}", end.as_secs_f64());
         let delta_t = Duration::from_secs_f64(f64::from(1).div(f64::from(60)))
             .checked_sub(end)
             .unwrap_or_default();
-        //println!("DeltaT {}", delta_t.as_secs_f64());
         if delta_t.as_millis() > 0 {
-            //println!("Waiting {}", delta_t.as_millis());
             sleep(delta_t);
         };
     }

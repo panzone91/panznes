@@ -1,4 +1,3 @@
-use crate::nes::ppu::palette::NES_PALETTE;
 use crate::nes::ppu::registers::{PPUCTRL, PPUSTATUS};
 use crate::Nes;
 

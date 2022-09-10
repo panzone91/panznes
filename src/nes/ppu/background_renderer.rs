@@ -1,6 +1,4 @@
-use crate::nes::ppu::palette::NES_PALETTE;
 use crate::Nes;
-use std::ops::Mul;
 
 impl<'a> Nes<'a> {
     pub(super) fn render_background(&mut self, current_scanline: u16) {
@@ -67,9 +65,9 @@ impl<'a> Nes<'a> {
                 //Last tile: I only need to render the tile_x_offset bits
                 32 => {
                     if tile_x_offset > 0 {
-                        (0..=tile_x_offset - 1)
+                        0..=tile_x_offset - 1
                     } else {
-                        (1..=0)
+                        1..=0
                     }
                 }
                 //This should never happens...
