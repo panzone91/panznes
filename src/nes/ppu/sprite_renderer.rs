@@ -33,7 +33,6 @@ impl<'a> Nes<'a> {
         }
         let number_sprites_scanline = secondary_oam_index;
         //TODO handle sprite 0 hit
-        //TODO handle sprite priority correctly
         for i in 0..number_sprites_scanline {
             let sprite_index = secondary_oam[i] as usize;
             let sprite_y_position = self.oam_ram[sprite_index];
@@ -55,12 +54,15 @@ impl<'a> Nes<'a> {
 
             let tile_address = pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4);
 
-            //TODO NOT TRUE! Depends if I must draw the sprite flipped
             let current_tile_row = current_scanline
                 .wrapping_sub(u16::from(sprite_y_position))
                 .wrapping_sub(1);
 
-            let tile_row_address = tile_address.wrapping_add(current_tile_row);
+            let tile_row_address = tile_address.wrapping_add(if sprite_attributes & 0x80 == 0 {
+                current_tile_row
+            } else {
+                7 - current_tile_row
+            });
             let tile_first_plane = self.read_ppu_byte(tile_row_address);
             let tile_second_plane = self.read_ppu_byte(tile_row_address.wrapping_add(8));
 
@@ -94,6 +96,10 @@ impl<'a> Nes<'a> {
                         .wrapping_add(u16::from(x_pos));
 
                     let has_background = self.background_hit_flag[index_screen as usize];
+
+                    if sprite_index == 0 && has_background {
+                        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+                    }
 
                     //I must draw the pixel only if there isn't a background pixel or if the sprite is in front background
                     if !has_background || sprite_priority {
