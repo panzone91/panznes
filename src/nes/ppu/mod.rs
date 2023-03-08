@@ -26,14 +26,8 @@ impl<'a> Nes<'a> {
                         self.render_sprites(self.current_scanline as u16);
                     }
                     self.current_scanline += 1;
-                    if self.current_scanline == 31 {
-                        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
-                    }
                 }
                 240 => {
-                    self.current_scanline += 1;
-                }
-                241 => {
                     //set VBlank, check if NMI is active and raise
                     let mut ppustatus = self.ppustatus;
                     ppustatus.insert(PPUSTATUS::V_BLANK);
@@ -47,11 +41,12 @@ impl<'a> Nes<'a> {
                     self.current_scanline += 1;
                 }
                 //VBlank = do nothing
-                242..=260 => {
+                241..=260 => {
                     self.current_scanline += 1;
                 }
                 //Finished scanlines, reset
                 261 => {
+                    self.ppu_v = (self.ppu_v & 0x041F) | (u16::from(self.ppu_t & 0xFBE0));
                     self.current_scanline = 0;
                 }
                 _ => {

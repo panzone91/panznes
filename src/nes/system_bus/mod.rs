@@ -17,18 +17,21 @@ impl<'a> Nes<'a> {
                 return match ppu_io_addr {
                     //todo should panic?
                     0 | 1 | 3 | 5 | 6 => 0,
-                    2 => self.ppustatus.bits(),
+                    2 => {
+                        self.ppu_second_write = false;
+                        self.ppustatus.bits()
+                    }
                     4 => {
                         let oam_addr = self.oam_addr;
                         self.oam_ram[oam_addr as usize]
                     }
                     7 => {
                         let old_data = self.vram_data;
-                        let vram_addr = self.vram_addr;
+                        let vram_addr = self.ppu_v;
                         let value = self.read_ppu_byte(vram_addr);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
-                        self.vram_addr =
+                        self.ppu_v =
                             vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 });
                         self.vram_data = value;
                         if vram_addr <= 0x3EFF {
@@ -96,7 +99,8 @@ impl<'a> Nes<'a> {
                 let ppu_io_addr = (addr - 0x2000) % 0x8;
                 return match ppu_io_addr {
                     0 => {
-                        self.ppuctrl = PPUCTRL::from_bits_truncate(value);
+                        self.ppu_t = (self.ppu_t & 0xF3FF) | ((u16::from(value) & 0x3) << 10);
+                        self.ppuctrl = PPUCTRL::from_bits_truncate(value)
                     }
                     1 => {
                         self.ppumask = PPUMASK::from_bits_truncate(value);
@@ -113,33 +117,34 @@ impl<'a> Nes<'a> {
                     }
                     5 => {
                         let second_write = self.ppu_second_write;
-                        if second_write {
-                            self.vertical_scroll_origin =
-                                if value > 0xf0 { value - 0xf0 } else { value }
+                        if !second_write {
+                            self.ppu_t = (self.ppu_t & 0xFFE0) | ((u16::from(value) & 0x00F8) >> 3);
+                            self.ppu_x = value & 0x7;
                         } else {
-                            self.horizontal_scroll_origin = value
+                            self.ppu_t = (self.ppu_t & 0x0C1F)
+                                | (u16::from(value & 0x3) << 12)
+                                | (u16::from(value & 0xF8) << 2);
                         }
                         self.ppu_second_write = !second_write
                     }
                     6 => {
                         let second_write = self.ppu_second_write;
-                        let addr = self.vram_addr;
-                        let new_addr = if !second_write {
-                            (value as u16 & 0x3f) << 8
+                        if !second_write {
+                            self.ppu_t = (self.ppu_t & 0xC0FF) | (u16::from(value & 0x3F) << 8);
                         } else {
-                            addr | u16::from(value)
-                        };
-
-                        self.vram_addr = new_addr;
+                            self.ppu_t = (self.ppu_t & 0xFF00) | u16::from(value);
+                            self.ppu_v = self.ppu_t;
+                        }
                         self.ppu_second_write = !second_write
                     }
                     7 => {
-                        let vram_addr = self.vram_addr;
+                        let vram_addr = self.ppu_v;
                         self.write_ppu_byte(vram_addr, value);
                         //Increase vram_addr based on VRAM_INCREMENT bit
                         let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
-                        self.vram_addr =
-                            vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 });
+                        self.ppu_v =
+                            vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 })
+                                & 0x7FFF;
                     }
                     2 => {
                         //NOP

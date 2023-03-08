@@ -52,10 +52,6 @@ pub struct Nes<'a> {
 
     ppu_second_write: bool,
 
-    horizontal_scroll_origin: u8,
-    vertical_scroll_origin: u8,
-
-    vram_addr: u16,
     vram_data: u8,
 
     chr_ram: [u8; 0x20000],
@@ -79,6 +75,10 @@ pub struct Nes<'a> {
     first_port_strobing_index: usize,
 
     serial: [u8; 0x20000],
+
+    ppu_v: u16,
+    ppu_t: u16,
+    ppu_x: u8,
 }
 
 pub enum NesControllerButton {
@@ -114,10 +114,6 @@ impl<'a> Nes<'a> {
 
             ppu_second_write: false,
 
-            horizontal_scroll_origin: 0,
-            vertical_scroll_origin: 0,
-
-            vram_addr: 0x0,
             vram_data: 0x0,
             ppu_memory: [0x0; 0x10000],
 
@@ -139,6 +135,10 @@ impl<'a> Nes<'a> {
             chr_ram: [0; 0x20000],
 
             serial: [0; 0x20000],
+
+            ppu_v: 0,
+            ppu_t: 0,
+            ppu_x: 0,
         }
     }
 
