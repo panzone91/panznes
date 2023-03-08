@@ -8,7 +8,7 @@ pub(crate) mod registers;
 mod sprite_renderer;
 mod utilities;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub fn execute_ppu(&mut self, cpu_cycles: u32) {
         //A CPU tick is equal to 3 PPU ticks...
         let ppu_cycles = cpu_cycles * 3;

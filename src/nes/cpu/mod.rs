@@ -4,7 +4,7 @@ use crate::nes::{FlagRegister, Interrupt, Nes};
 
 mod opcodes;
 
-impl Memory for Nes<'_> {
+impl Memory for Nes {
     fn read_byte(&mut self, addr: u16) -> u8 {
         return self.read_cpu_byte(addr);
     }
@@ -14,7 +14,7 @@ impl Memory for Nes<'_> {
     }
 }
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub fn execute_instruction(&mut self) -> u32 {
         if self.raised_nmi == true {
             self.raised_nmi = false;

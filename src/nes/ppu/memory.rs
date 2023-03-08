@@ -1,27 +1,17 @@
 use crate::cartridge::CartridgeMirroring;
 use crate::Nes;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(crate) fn read_ppu_byte(&mut self, addr: u16) -> u8 {
         let read_addr = addr & 0x3FFF;
 
         return match read_addr {
             //CHR_ROM
             //TODO This depends on cart mapping
-            0..=0x1FFF => {
-                if self.cartridge.unwrap().chr_rom_size == 0 {
-                    self.chr_ram[read_addr as usize]
-                } else {
-                    self.cartridge.unwrap().chr_rom[read_addr as usize]
-                }
-            }
+            0..=0x1FFF => self.cartridge.read_chr_byte(read_addr),
             //Nametables
             0x2000..=0x2FFF => {
-                let ppu_addr = match self
-                    .cartridge
-                    .expect("Missing cartridge")
-                    .namespace_mirroring
-                {
+                let ppu_addr = match self.cartridge.get_namespace_mirroring() {
                     CartridgeMirroring::HORIZONTAL => read_addr & 0xFBFF,
                     CartridgeMirroring::VERTICAL => read_addr & 0xF7FF,
                 };
@@ -65,11 +55,7 @@ impl<'a> Nes<'a> {
             //Nametables
             //TODO this depends on cart mirroring!
             0x2000..=0x2FFF => {
-                let ppu_addr = match self
-                    .cartridge
-                    .expect("Missing cartridge")
-                    .namespace_mirroring
-                {
+                let ppu_addr = match self.cartridge.get_namespace_mirroring() {
                     CartridgeMirroring::HORIZONTAL => write_addr & 0xFBFF,
                     CartridgeMirroring::VERTICAL => write_addr & 0xF7FF,
                 };

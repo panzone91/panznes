@@ -1303,7 +1303,7 @@ pub const OPCODES: [Instruction; 256] = [
     },
 ];
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(super) fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.flag.insert(FlagRegister::ZERO);

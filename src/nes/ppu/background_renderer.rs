@@ -1,6 +1,6 @@
 use crate::Nes;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(super) fn render_background(&mut self, current_scanline: u16) {
         let mut current_pixel = 0;
 

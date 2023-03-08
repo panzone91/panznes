@@ -1,5 +1,5 @@
+use crate::cartridge::Mapper;
 use crate::nes::ppu::registers::{PPUCTRL, PPUMASK, PPUSTATUS};
-use crate::Cartridge;
 use bitflags::bitflags;
 
 mod cpu;
@@ -24,7 +24,7 @@ bitflags! {
     }
 }
 
-pub struct Nes<'a> {
+pub struct Nes {
     // Registers
 
     //accumulator
@@ -42,7 +42,7 @@ pub struct Nes<'a> {
 
     //Main WRAM
     cpu_memory: [u8; 0x800],
-    cartridge: Option<&'a Cartridge>,
+    cartridge: Box<dyn Mapper>,
 
     ppuctrl: PPUCTRL,
     ppumask: PPUMASK,
@@ -92,8 +92,8 @@ pub enum NesControllerButton {
     RIGHT,
 }
 
-impl<'a> Nes<'a> {
-    pub fn create_nes() -> Nes<'a> {
+impl Nes {
+    pub fn create_nes<T: Mapper + 'static>(cartridge: T) -> Nes {
         Nes {
             a: 0,
             x: 0,
@@ -104,7 +104,7 @@ impl<'a> Nes<'a> {
 
             //Main WRAM
             cpu_memory: [0x0; 0x800],
-            cartridge: Option::None,
+            cartridge: Box::new(cartridge),
 
             ppuctrl: PPUCTRL::from_bits_truncate(0),
             ppumask: PPUMASK::from_bits_truncate(0),
@@ -140,9 +140,5 @@ impl<'a> Nes<'a> {
             ppu_t: 0,
             ppu_x: 0,
         }
-    }
-
-    pub fn insert_cartdrige(&mut self, cart: &'a Cartridge) {
-        self.cartridge = Some(cart);
     }
 }

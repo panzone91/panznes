@@ -1,6 +1,6 @@
 extern crate core;
 
-use crate::cartridge::Cartridge;
+use crate::cartridge::from_ines;
 use crate::nes::NesControllerButton::START;
 use crate::nes::{Nes, NesControllerButton};
 use crate::NesControllerButton::{A, B, DOWN, LEFT, RIGHT, SELECT, UP};
@@ -91,10 +91,9 @@ fn main() {
     canvas.clear();
     canvas.present();
 
-    let cart = Cartridge::from_ines(&buffer);
+    let cart = from_ines(&buffer);
 
-    let mut nes = Nes::create_nes();
-    nes.insert_cartdrige(&cart);
+    let mut nes = Nes::create_nes(cart);
 
     nes.reset();
 

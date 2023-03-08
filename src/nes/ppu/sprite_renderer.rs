@@ -2,7 +2,7 @@ use crate::nes::ppu::registers::{PPUCTRL, PPUSTATUS};
 use crate::Nes;
 use std::ops::Mul;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(super) fn render_sprites(&mut self, current_scanline: u16) {
         // PPU has a 32 byte memory that works as a secondary OAM that contains
         // the 8 sprites for this line. We start by doing a linear search

@@ -3,7 +3,7 @@ use crate::nes::Nes;
 
 mod controller;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(crate) fn read_cpu_byte(&mut self, addr: u16) -> u8 {
         return match addr {
             0x0000..=0x1FFF => {
@@ -68,21 +68,7 @@ impl<'a> Nes<'a> {
             0x4020..=0x5FFF => 0,
             //Cart RAM
             0x6000..=0x7FFF => 0,
-            0x8000..=0xFFFF => {
-                //TODO handle cart mapper
-                let cartridge = self.cartridge.unwrap();
-                let pkg_rom = &cartridge.pkg_rom;
-                let pkg_rom_size = cartridge.pkg_rom_size;
-
-                //If ROM only has 1 page, it's mirrored into 0xC000 - 0xFFFF
-                let rom_addr = (addr - 0x8000)
-                    % if pkg_rom_size == 0x4000 {
-                        0x4000
-                    } else {
-                        0x8000
-                    };
-                *pkg_rom.get(rom_addr as usize).unwrap()
-            }
+            0x8000..=0xFFFF => self.cartridge.read_pkg_byte(addr - 0x8000),
         };
     }
 
@@ -178,7 +164,7 @@ impl<'a> Nes<'a> {
             }
             //PGR_ROM
             0x8000..=0xFFFF => {
-                //TODO this should be different for each cart
+                self.cartridge.write_pkg_byte(addr - 0x8000, value);
             }
         }
     }

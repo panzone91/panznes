@@ -3,7 +3,7 @@ use crate::nes::ppu::registers::PPUCTRL;
 use crate::Nes;
 use std::ops::Mul;
 
-impl<'a> Nes<'a> {
+impl Nes {
     pub(super) fn get_active_pattern_table(&mut self, bit: PPUCTRL) -> u16 {
         if self.ppuctrl.contains(bit) {
             0x1000
