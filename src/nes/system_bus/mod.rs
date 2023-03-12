@@ -1,4 +1,4 @@
-use crate::nes::ppu::registers::{PPUCTRL, PPUMASK};
+use crate::nes::ppu::registers::{PPUCTRL, PPUMASK, PPUSTATUS};
 use crate::nes::Nes;
 
 mod controller;
@@ -19,7 +19,9 @@ impl Nes {
                     0 | 1 | 3 | 5 | 6 => 0,
                     2 => {
                         self.ppu_second_write = false;
-                        self.ppustatus.bits()
+                        let ret_val = self.ppustatus.bits();
+                        self.ppustatus.remove(PPUSTATUS::V_BLANK);
+                        ret_val
                     }
                     4 => {
                         let oam_addr = self.oam_addr;
@@ -67,7 +69,7 @@ impl Nes {
             //Expansion ROM (only certain mappers)
             0x4020..=0x5FFF => 0,
             //Cart RAM
-            0x6000..=0x7FFF => 0,
+            0x6000..=0x7FFF => self.cartridge.read_ram_byte(addr - 0x6000),
             0x8000..=0xFFFF => self.cartridge.read_pkg_byte(addr - 0x8000),
         };
     }
@@ -159,19 +161,12 @@ impl Nes {
             //Expansion ROM (only certain mappers
             0x4020..=0x5FFF => {}
             //Cart RAM
-            0x6000..=0x7FFF => {
-                self.serial[addr as usize - 0x6000] = value;
-            }
+            0x6000..=0x7FFF => self.cartridge.write_ram_byte(addr - 0x6000, value),
             //PGR_ROM
             0x8000..=0xFFFF => {
                 self.cartridge.write_pkg_byte(addr - 0x8000, value);
             }
         }
-    }
-
-    pub(crate) fn raise_nmi(&mut self) {
-        //TODO handle better for clock accuracy
-        self.raised_nmi = true;
     }
 
     pub(crate) fn dma_transfert(&mut self) {
