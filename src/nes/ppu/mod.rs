@@ -43,7 +43,6 @@ impl Nes {
                 }
                 //Finished scanlines, reset
                 261 => {
-                    self.ppu_v = (self.ppu_v & 0x041F) | (u16::from(self.ppu_t & 0xFBE0));
                     self.current_scanline = 0;
                     self.ppustatus.remove(PPUSTATUS::V_BLANK);
                 }

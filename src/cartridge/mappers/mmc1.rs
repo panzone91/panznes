@@ -99,7 +99,7 @@ impl Cartridge for MMC1 {
         // 8k mode
         if chr_mode == 0 {
             let chr_bank = (self.chr0_bank & 0x1) as usize;
-            let chr_addr = chr_bank.mul(0x1000).add(addr as usize);
+            let chr_addr = chr_bank.mul(0x2000).add(addr as usize);
             return self.chr_rom[chr_addr];
         }
 
