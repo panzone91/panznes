@@ -52,17 +52,29 @@ impl Nes {
                     (u16::from(sprite_tile_index) & 0x1) * 0x1000
                 };
 
-            let tile_address = pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4);
+            let tile_address = if sprite_size == 8 {
+                pattern_table.wrapping_add(u16::from(sprite_tile_index) << 4)
+            } else {
+                pattern_table.wrapping_add(u16::from(sprite_tile_index & 0xFE) << 4)
+            };
 
             let current_tile_row = current_scanline
                 .wrapping_sub(u16::from(sprite_y_position))
                 .wrapping_sub(1);
 
-            let tile_row_address = tile_address.wrapping_add(if sprite_attributes & 0x80 == 0 {
+            let row_to_draw = if sprite_attributes & 0x80 == 0 {
                 current_tile_row
             } else {
                 (sprite_size - 1) - current_tile_row
-            });
+            };
+
+            let sprite_size_adj = if row_to_draw >= 8 && sprite_size == 16 {
+                row_to_draw.wrapping_add(8)
+            } else {
+                row_to_draw
+            };
+
+            let tile_row_address = tile_address.wrapping_add(sprite_size_adj);
             let tile_first_plane = self.read_ppu_byte(tile_row_address);
             let tile_second_plane = self.read_ppu_byte(tile_row_address.wrapping_add(8));
 
