@@ -1,4 +1,4 @@
-use crate::nes::ppu::registers::{PPUCTRL, PPUMASK, PPUSTATUS};
+use crate::nes::ppu::registers::{VRAM_INCREMENT, V_BLANK};
 use crate::nes::Nes;
 
 mod controller;
@@ -19,8 +19,8 @@ impl Nes {
                     0 | 1 | 3 | 5 | 6 => 0,
                     2 => {
                         self.ppu_second_write = false;
-                        let ret_val = self.ppustatus.bits();
-                        self.ppustatus.remove(PPUSTATUS::V_BLANK);
+                        let ret_val = self.ppustatus;
+                        self.ppustatus = self.ppustatus & !V_BLANK;
                         ret_val
                     }
                     4 => {
@@ -32,7 +32,7 @@ impl Nes {
                         let vram_addr = self.ppu_v;
                         let value = self.read_ppu_byte(vram_addr);
                         //Increase vram_addr based on VRAM_INCREMENT bit
-                        let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
+                        let horizontal_increment = (self.ppuctrl & VRAM_INCREMENT) != 0;
                         self.ppu_v =
                             vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 });
                         self.vram_data = value;
@@ -88,10 +88,10 @@ impl Nes {
                 return match ppu_io_addr {
                     0 => {
                         self.ppu_t = (self.ppu_t & 0xF3FF) | ((u16::from(value) & 0x3) << 10);
-                        self.ppuctrl = PPUCTRL::from_bits_truncate(value)
+                        self.ppuctrl = value
                     }
                     1 => {
-                        self.ppumask = PPUMASK::from_bits_truncate(value);
+                        self.ppumask = value;
                     }
                     //OAM ADDR
                     3 => {
@@ -129,7 +129,7 @@ impl Nes {
                         let vram_addr = self.ppu_v;
                         self.write_ppu_byte(vram_addr, value);
                         //Increase vram_addr based on VRAM_INCREMENT bit
-                        let horizontal_increment = self.ppuctrl.contains(PPUCTRL::VRAM_INCREMENT);
+                        let horizontal_increment = (self.ppuctrl & VRAM_INCREMENT) != 0;
                         self.ppu_v =
                             vram_addr.wrapping_add(if horizontal_increment { 32 } else { 1 })
                                 & 0x7FFF;

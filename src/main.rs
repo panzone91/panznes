@@ -11,6 +11,7 @@ use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
 use std::fs::File;
 use std::io::Read;
+use std::mem::size_of;
 use std::ops::Div;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
@@ -94,7 +95,7 @@ fn main() {
     let cart = from_ines(&buffer);
 
     let mut nes = Nes::create_nes(cart);
-
+    println!("{}", size_of::<Nes>());
     nes.reset();
 
     let mut num_clock: u32 = 0;

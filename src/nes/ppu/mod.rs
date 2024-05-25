@@ -1,4 +1,4 @@
-use crate::nes::ppu::registers::{PPUMASK, PPUSTATUS};
+use crate::nes::ppu::registers::{BACKGROUND_ENABLED, SPRITES_ENABLED, SPRITE_0_HIT, V_BLANK};
 use crate::nes::Nes;
 
 mod background_renderer;
@@ -19,10 +19,10 @@ impl Nes {
             match self.current_scanline {
                 0..=239 => {
                     //TODO maybe I should emulate the PPU clock by clock?
-                    if self.ppumask.contains(PPUMASK::BACKGROUND_ENABLED) {
+                    if (self.ppumask & BACKGROUND_ENABLED) != 0 {
                         self.render_background(self.current_scanline as u16);
                     }
-                    if self.ppumask.contains(PPUMASK::SPRITES_ENABLED) {
+                    if (self.ppumask & SPRITES_ENABLED) != 0 {
                         self.render_sprites(self.current_scanline as u16);
                     }
                     self.current_scanline += 1;
@@ -30,11 +30,10 @@ impl Nes {
                 240 => {
                     //set VBlank, check if NMI is active and raise
                     let mut ppustatus = self.ppustatus;
-                    ppustatus.insert(PPUSTATUS::V_BLANK);
-                    ppustatus.remove(PPUSTATUS::SPRITE_0_HIT);
+                    ppustatus = ppustatus | V_BLANK;
+                    ppustatus = ppustatus & !SPRITE_0_HIT;
                     self.ppustatus = ppustatus;
 
-                    self.ppustatus.insert(PPUSTATUS::V_BLANK);
                     self.current_scanline += 1;
                 }
                 //VBlank = do nothing
@@ -44,7 +43,7 @@ impl Nes {
                 //Finished scanlines, reset
                 261 => {
                     self.current_scanline = 0;
-                    self.ppustatus.remove(PPUSTATUS::V_BLANK);
+                    self.ppustatus = self.ppustatus & !V_BLANK;
                 }
                 _ => {
                     //TODO panic

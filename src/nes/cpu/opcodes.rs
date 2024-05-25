@@ -1,5 +1,5 @@
 use crate::memory::Memory;
-use crate::nes::{FlagRegister, Interrupt, Nes};
+use crate::nes::{Interrupt, Nes, BREAK_FLAG, CARRY, IRQ_DISABLE, NEGATIV, OVERFLOW, ZERO};
 
 pub enum AddressMode {
     Implied,
@@ -1306,15 +1306,15 @@ pub const OPCODES: [Instruction; 256] = [
 impl Nes {
     pub(super) fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
-            self.flag.insert(FlagRegister::ZERO);
+            self.flag = self.flag | ZERO;
         } else {
-            self.flag.remove(FlagRegister::ZERO);
+            self.flag = self.flag & !ZERO;
         }
 
         if result >> 7 == 1 {
-            self.flag.insert(FlagRegister::NEGATIV);
+            self.flag = self.flag | NEGATIV;
         } else {
-            self.flag.remove(FlagRegister::NEGATIV);
+            self.flag = self.flag & !NEGATIV;
         }
     }
 
@@ -1446,11 +1446,7 @@ impl Nes {
         instruction: &Instruction,
     ) -> u32 {
         let (operand, is_page_cross) = self.get_operand_address(&instruction.address_mode);
-        let carry = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let carry = if (self.flag & CARRY) != 0 { 1 } else { 0 };
 
         let value = self.read_byte(operand);
 
@@ -1459,15 +1455,15 @@ impl Nes {
 
         //Handle flags
         if result_16bit > 0xff {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         //If the two sign bits from a and value are the same but result is different we have overflow
         if (self.a ^ result_8bit) & (value ^ result_8bit) & 0x80 != 0 {
-            self.flag.insert(FlagRegister::OVERFLOW);
+            self.flag = self.flag | OVERFLOW;
         } else {
-            self.flag.remove(FlagRegister::OVERFLOW);
+            self.flag = self.flag & !OVERFLOW;
         }
 
         self.update_zero_and_negative_flags(result_8bit);
@@ -1494,11 +1490,7 @@ impl Nes {
     //TODO refactor
     pub(super) fn sbc(&mut self, instruction: &Instruction) -> u32 {
         let (operand, is_page_cross) = self.get_operand_address(&instruction.address_mode);
-        let carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let carry: u8 = if (self.flag & CARRY) != 0 { 1 } else { 0 };
 
         let value = self.read_byte(operand) ^ 0xFF;
 
@@ -1509,15 +1501,15 @@ impl Nes {
 
         //Handle flags
         if result_16bit > 0xff {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         //If the two sign bits from a and value are the same but result is different we have overflow
         if (self.a ^ result_8bit) & (value ^ result_8bit) & 0x80 != 0 {
-            self.flag.insert(FlagRegister::OVERFLOW);
+            self.flag = self.flag | OVERFLOW;
         } else {
-            self.flag.remove(FlagRegister::OVERFLOW);
+            self.flag = self.flag & !OVERFLOW;
         }
 
         self.update_zero_and_negative_flags(result_8bit);
@@ -1570,9 +1562,9 @@ impl Nes {
 
         let result = compare_with.wrapping_sub(value);
         if compare_with >= value {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
 
         self.update_zero_and_negative_flags(result);
@@ -1587,14 +1579,19 @@ impl Nes {
         let (operand, _) = self.get_operand_address(&instruction.address_mode);
         let value = self.read_byte(operand);
         if (self.a & value) == 0 {
-            self.flag.insert(FlagRegister::ZERO);
+            self.flag = self.flag | ZERO;
         } else {
-            self.flag.remove(FlagRegister::ZERO);
+            self.flag = self.flag & !ZERO;
         }
 
-        self.flag.set(FlagRegister::NEGATIV, value & 0b10000000 > 0);
-        self.flag
-            .set(FlagRegister::OVERFLOW, value & 0b01000000 > 0);
+        if value & 0b10000000 > 0 {
+            self.flag = self.flag | NEGATIV;
+        }
+
+        if value & 0b01000000 > 0 {
+            self.flag = self.flag | OVERFLOW;
+        }
+
         return instruction.cycles;
     }
 
@@ -1620,9 +1617,9 @@ impl Nes {
 
         let rot_value = value << 1;
         if (value & 0x80) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         self.write_byte(operand, rot_value);
         self.update_zero_and_negative_flags(rot_value);
@@ -1632,9 +1629,9 @@ impl Nes {
     pub(super) fn shl_acc(&mut self) -> u32 {
         let rot_value = self.a << 1;
         if (self.a & 0x80) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         self.a = rot_value;
         self.update_zero_and_negative_flags(self.a);
@@ -1647,9 +1644,9 @@ impl Nes {
 
         let rot_value = value >> 1;
         if (value & 0x01) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         self.write_byte(operand, rot_value);
         self.update_zero_and_negative_flags(rot_value);
@@ -1659,9 +1656,9 @@ impl Nes {
     pub(super) fn shr_acc(&mut self) -> u32 {
         let rot_value = self.a >> 1;
         if (self.a & 0x01) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         self.a = rot_value;
         self.update_zero_and_negative_flags(self.a);
@@ -1671,17 +1668,13 @@ impl Nes {
     pub(super) fn rol(&mut self, instruction: &Instruction) -> u32 {
         let (operand, _) = self.get_operand_address(&instruction.address_mode);
         let value = self.read_byte(operand);
-        let old_carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let old_carry: u8 = if (self.flag & CARRY) != 0 { 1 } else { 0 };
 
         let mut rot_value = value << 1;
         if (value & 0x80) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         if old_carry == 1 {
             rot_value = rot_value | 0x01
@@ -1693,17 +1686,13 @@ impl Nes {
     }
 
     pub(super) fn rol_acc(&mut self) -> u32 {
-        let old_carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let old_carry: u8 = if (self.flag & CARRY) != 0 { 1 } else { 0 };
 
         let mut rot_value = self.a << 1;
         if (self.a & 0x80) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         if old_carry == 1 {
             rot_value = rot_value | 0x01
@@ -1717,17 +1706,13 @@ impl Nes {
     pub(super) fn ror(&mut self, instruction: &Instruction) -> u32 {
         let (operand, _) = self.get_operand_address(&instruction.address_mode);
         let value = self.read_byte(operand);
-        let old_carry: u8 = if self.flag.contains(FlagRegister::CARRY) {
-            1
-        } else {
-            0
-        };
+        let old_carry: u8 = if (self.flag & CARRY) != 0 { 1 } else { 0 };
 
         let mut rot_value = value >> 1;
         if (value & 0x01) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         if old_carry == 1 {
             rot_value = rot_value | 0x80
@@ -1739,13 +1724,13 @@ impl Nes {
     }
 
     pub(super) fn ror_acc(&mut self) -> u32 {
-        let old_carry = self.flag.contains(FlagRegister::CARRY);
+        let old_carry = (self.flag & CARRY) != 0;
 
         let mut rot_value = self.a >> 1;
         if (self.a & 0x01) != 0 {
-            self.flag.insert(FlagRegister::CARRY)
+            self.flag = self.flag | CARRY;
         } else {
-            self.flag.remove(FlagRegister::CARRY)
+            self.flag = self.flag & !CARRY;
         }
         if old_carry {
             rot_value = rot_value | 0x80
@@ -1778,18 +1763,17 @@ impl Nes {
             Interrupt::BREAK => 1,
         };
         if break_flag != 0 {
-            self.flag.insert(FlagRegister::BREAK)
+            self.flag = self.flag | BREAK_FLAG;
         } else {
-            self.flag.remove(FlagRegister::BREAK)
+            self.flag = self.flag & !BREAK_FLAG;
         }
 
         let ret_pc = self.prog_counter;
         self.push((ret_pc >> 8) as u8);
         self.push((ret_pc & 0xFF) as u8);
 
-        self.push(self.flag.bits);
-
-        self.flag.insert(FlagRegister::IRQ_DISABLE);
+        self.push(self.flag);
+        self.flag = self.flag | IRQ_DISABLE;
 
         let interrupt_routine = match interrupt_type {
             Interrupt::BREAK => 0xFFFE,
@@ -1805,7 +1789,7 @@ impl Nes {
         self.x = 0;
         self.y = 0;
         self.stack_ptr = 0xFD;
-        self.flag = FlagRegister::from_bits_truncate(0b100100);
+        self.flag = 0b100100;
         self.prog_counter = self.read_word(0xFFFC);
     }
 }

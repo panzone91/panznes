@@ -1,7 +1,9 @@
 use crate::memory::Memory;
 use crate::nes::cpu::opcodes::OPCODES;
-use crate::nes::ppu::registers::{PPUCTRL, PPUSTATUS};
-use crate::nes::{FlagRegister, Interrupt, Nes};
+use crate::nes::ppu::registers::{NMI_ENABLED, V_BLANK};
+use crate::nes::{
+    Interrupt, Nes, BREAK_FLAG, CARRY, DECIMAL_MODE, IRQ_DISABLE, NEGATIV, OVERFLOW, UNUSED, ZERO,
+};
 
 mod opcodes;
 
@@ -17,11 +19,9 @@ impl Memory for Nes {
 
 impl Nes {
     pub fn execute_instruction(&mut self) -> u32 {
-        if self.ppuctrl.contains(PPUCTRL::NMI_ENABLED)
-            && self.ppustatus.contains(PPUSTATUS::V_BLANK)
-        {
-            self.ppuctrl.remove(PPUCTRL::NMI_ENABLED);
-            self.ppustatus.remove(PPUSTATUS::V_BLANK);
+        if (self.ppuctrl & NMI_ENABLED) != 0 && (self.ppustatus & V_BLANK) != 0 {
+            self.ppuctrl = self.ppuctrl & !NMI_ENABLED;
+            self.ppustatus = self.ppustatus & !V_BLANK;
             return self.raise_interrupt(Interrupt::NMI);
         }
 
@@ -89,7 +89,7 @@ impl Nes {
             0x48 => self.push(self.a),
 
             //PHP
-            0x08 => self.push(self.flag.bits | 0x30),
+            0x08 => self.push(self.flag | 0x30),
 
             //PLA
             0x68 => {
@@ -102,8 +102,7 @@ impl Nes {
             //PLP
             0x28 => {
                 let (value, cycles) = self.pop();
-                self.flag =
-                    FlagRegister::from_bits_truncate((value & 0xCF) | (self.flag.bits & 0x30));
+                self.flag = (value & 0xCF) | (self.flag & 0x30);
                 cycles
             }
 
@@ -205,17 +204,13 @@ impl Nes {
             //RTI
             0x40 => {
                 let (flag, _) = self.pop();
-                let current_brk = if self.flag.contains(FlagRegister::BREAK) {
-                    1
-                } else {
-                    0
-                };
+                let current_brk = if (self.flag & BREAK_FLAG) != 0 { 1 } else { 0 };
 
-                self.flag = FlagRegister::from_bits_truncate(flag);
+                self.flag = flag;
                 if current_brk != 0 {
-                    self.flag.insert(FlagRegister::BREAK);
+                    self.flag = self.flag | BREAK_FLAG;
                 }
-                self.flag.insert(FlagRegister::UNUSED);
+                self.flag = self.flag | UNUSED;
 
                 let (low_byte, _) = self.pop();
                 let (hi_byte, _) = self.pop();
@@ -232,54 +227,54 @@ impl Nes {
                 6
             }
             //BPL
-            0x10 => self.conditional_jump(instruction, !self.flag.contains(FlagRegister::NEGATIV)),
+            0x10 => self.conditional_jump(instruction, (self.flag & NEGATIV) == 0),
             //BMI
-            0x30 => self.conditional_jump(instruction, self.flag.contains(FlagRegister::NEGATIV)),
+            0x30 => self.conditional_jump(instruction, (self.flag & NEGATIV) != 0),
             //BVC
-            0x50 => self.conditional_jump(instruction, !self.flag.contains(FlagRegister::OVERFLOW)),
+            0x50 => self.conditional_jump(instruction, (self.flag & OVERFLOW) == 0),
             //BVS
-            0x70 => self.conditional_jump(instruction, self.flag.contains(FlagRegister::OVERFLOW)),
+            0x70 => self.conditional_jump(instruction, (self.flag & OVERFLOW) != 0),
             //BCC
-            0x90 => self.conditional_jump(instruction, !self.flag.contains(FlagRegister::CARRY)),
+            0x90 => self.conditional_jump(instruction, (self.flag & CARRY) == 0),
             //BCS
-            0xB0 => self.conditional_jump(instruction, self.flag.contains(FlagRegister::CARRY)),
+            0xB0 => self.conditional_jump(instruction, (self.flag & CARRY) != 0),
             //BNE
-            0xD0 => self.conditional_jump(instruction, !self.flag.contains(FlagRegister::ZERO)),
+            0xD0 => self.conditional_jump(instruction, (self.flag & ZERO) == 0),
             //BEQ
-            0xF0 => self.conditional_jump(instruction, self.flag.contains(FlagRegister::ZERO)),
+            0xF0 => self.conditional_jump(instruction, (self.flag & ZERO) != 0),
             //CLC
             0x18 => {
-                self.flag.remove(FlagRegister::CARRY);
+                self.flag = self.flag & !CARRY;
                 instruction.cycles
             }
             //CLI
             0x58 => {
-                self.flag.remove(FlagRegister::IRQ_DISABLE);
+                self.flag = self.flag & !IRQ_DISABLE;
                 instruction.cycles
             }
             //CLD
             0xD8 => {
-                self.flag.remove(FlagRegister::DECIMAL_MODE);
+                self.flag = self.flag & !DECIMAL_MODE;
                 instruction.cycles
             }
             //CLV
             0xB8 => {
-                self.flag.remove(FlagRegister::OVERFLOW);
+                self.flag = self.flag & !OVERFLOW;
                 instruction.cycles
             }
             //SEC
             0x38 => {
-                self.flag.insert(FlagRegister::CARRY);
+                self.flag = self.flag | CARRY;
                 instruction.cycles
             }
             //SEI
             0x78 => {
-                self.flag.insert(FlagRegister::IRQ_DISABLE);
+                self.flag = self.flag | IRQ_DISABLE;
                 instruction.cycles
             }
             //SED
             0xF8 => {
-                self.flag.insert(FlagRegister::DECIMAL_MODE);
+                self.flag = self.flag | DECIMAL_MODE;
                 instruction.cycles
             }
             //BRK

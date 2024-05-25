@@ -1,11 +1,11 @@
 use crate::nes::ppu::palette::NES_PALETTE;
-use crate::nes::ppu::registers::PPUCTRL;
+use crate::nes::ppu::registers::BACKGROUND_PATTERN_TABLE;
 use crate::Nes;
 use std::ops::Mul;
 
 impl Nes {
-    pub(super) fn get_active_pattern_table(&mut self, bit: PPUCTRL) -> u16 {
-        if self.ppuctrl.contains(bit) {
+    pub(super) fn get_active_pattern_table(&mut self, bit: u8) -> u16 {
+        if (self.ppuctrl & bit) != 0 {
             0x1000
         } else {
             0x0000
@@ -13,7 +13,7 @@ impl Nes {
     }
 
     pub(super) fn retrieve_tile_row(&mut self, tile_index: u8, y: u8) -> (u8, u8) {
-        let pattern_table: u16 = self.get_active_pattern_table(PPUCTRL::BACKGROUND_PATTERN_TABLE);
+        let pattern_table: u16 = self.get_active_pattern_table(BACKGROUND_PATTERN_TABLE);
 
         let tile_address = pattern_table
             //A tile is 16 bytes, so the address of the tile is pattern_table + (tile_index * 16)

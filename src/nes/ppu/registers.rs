@@ -1,5 +1,3 @@
-use bitflags::bitflags;
-
 /*
 7  bit  0
 ---- ----
@@ -16,17 +14,13 @@ VPHB SINN
 +--------- Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)
  */
 
-bitflags! {
-    pub(crate) struct PPUCTRL: u8 {
-        const NAMETABLE_ADDRESS         = 0b00000011;
-        const VRAM_INCREMENT            = 0b00000100;
-        const SPRITE_PATTERN_TABLE      = 0b00001000;
-        const BACKGROUND_PATTERN_TABLE  = 0b00010000;
-        const SPRITE_SIZE_16            = 0b00100000;
-        const PPU_MASTER_SLAVE          = 0b01000000;
-        const NMI_ENABLED               = 0b10000000;
-    }
-}
+pub const NAMETABLE_ADDRESS: u8 = 0b00000011;
+pub const VRAM_INCREMENT: u8 = 0b00000100;
+pub const SPRITE_PATTERN_TABLE: u8 = 0b00001000;
+pub const BACKGROUND_PATTERN_TABLE: u8 = 0b00010000;
+pub const SPRITE_SIZE_16: u8 = 0b00100000;
+pub const PPU_MASTER_SLAVE: u8 = 0b01000000;
+pub const NMI_ENABLED: u8 = 0b10000000;
 
 /*
 7  bit  0
@@ -42,18 +36,14 @@ BGRs bMmG
 |+-------- Emphasize green (red on PAL/Dendy)
 +--------- Emphasize blue
 */
-bitflags! {
-    pub(crate) struct PPUMASK: u8 {
-        const GREYSCALE                      = 0b00000001;
-        const BACKGROUD_LEFT_ENABLED         = 0b00000010;
-        const SPRITE_LEFT_ENABLED            = 0b00000100;
-        const BACKGROUND_ENABLED             = 0b00001000;
-        const SPRITES_ENABLED                = 0b00010000;
-        const RED_EMPHASIZE                  = 0b00100000;
-        const GREEN_EMPHASIZE                = 0b01000000;
-        const BLUE_EMPHASIZE                 = 0b10000000;
-    }
-}
+pub const GREYSCALE: u8 = 0b00000001;
+pub const BACKGROUD_LEFT_ENABLED: u8 = 0b00000010;
+pub const SPRITE_LEFT_ENABLED: u8 = 0b00000100;
+pub const BACKGROUND_ENABLED: u8 = 0b00001000;
+pub const SPRITES_ENABLED: u8 = 0b00010000;
+pub const RED_EMPHASIZE: u8 = 0b00100000;
+pub const GREEN_EMPHASIZE: u8 = 0b01000000;
+pub const BLUE_EMPHASIZE: u8 = 0b10000000;
 
 /*
 7  bit  0
@@ -65,12 +55,7 @@ VSO. ....
 |+-------- Sprite 0 Hit.
 +--------- Vertical blank has started (0: not in vblank; 1: in vblank).
 */
-
-bitflags! {
-    pub(crate) struct PPUSTATUS: u8 {
-        const GARBAGE            = 0b00011111;
-        const SPRITE_OVERFLOW    = 0b00100000;
-        const SPRITE_0_HIT       = 0b01000000;
-        const V_BLANK            = 0b10000000;
-    }
-}
+pub const GARBAGE: u8 = 0b00011111;
+pub const SPRITE_OVERFLOW: u8 = 0b00100000;
+pub const SPRITE_0_HIT: u8 = 0b01000000;
+pub const V_BLANK: u8 = 0b10000000;

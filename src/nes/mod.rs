@@ -1,6 +1,4 @@
 use crate::cartridge::Cartridge;
-use crate::nes::ppu::registers::{PPUCTRL, PPUMASK, PPUSTATUS};
-use bitflags::bitflags;
 
 mod cpu;
 mod ppu;
@@ -11,18 +9,14 @@ enum Interrupt {
     BREAK,
 }
 
-bitflags! {
-    struct FlagRegister: u8 {
-        const CARRY             = 0b00000001;
-        const ZERO              = 0b00000010;
-        const IRQ_DISABLE       = 0b00000100;
-        const DECIMAL_MODE      = 0b00001000;
-        const BREAK             = 0b00010000;
-        const UNUSED            = 0b00100000;
-        const OVERFLOW          = 0b01000000;
-        const NEGATIV           = 0b10000000;
-    }
-}
+pub const CARRY: u8 = 0b00000001;
+pub const ZERO: u8 = 0b00000010;
+pub const IRQ_DISABLE: u8 = 0b00000100;
+pub const DECIMAL_MODE: u8 = 0b00001000;
+pub const BREAK_FLAG: u8 = 0b00010000;
+pub const UNUSED: u8 = 0b00100000;
+pub const OVERFLOW: u8 = 0b01000000;
+pub const NEGATIV: u8 = 0b10000000;
 
 pub struct Nes {
     // Registers
@@ -36,7 +30,7 @@ pub struct Nes {
     //Stack pointer
     stack_ptr: u8,
     //P (status)
-    flag: FlagRegister,
+    flag: u8,
     //Program Counter
     prog_counter: u16,
 
@@ -44,9 +38,9 @@ pub struct Nes {
     cpu_memory: [u8; 0x800],
     cartridge: Box<dyn Cartridge>,
 
-    ppuctrl: PPUCTRL,
-    ppumask: PPUMASK,
-    ppustatus: PPUSTATUS,
+    ppuctrl: u8,
+    ppumask: u8,
+    ppustatus: u8,
     oam_addr: u8,
     oam_ram: [u8; 0x100],
 
@@ -94,16 +88,16 @@ impl Nes {
             x: 0,
             y: 0,
             stack_ptr: 0,
-            flag: FlagRegister::from_bits_truncate(0),
+            flag: 0,
             prog_counter: 0,
 
             //Main WRAM
             cpu_memory: [0x0; 0x800],
             cartridge,
 
-            ppuctrl: PPUCTRL::from_bits_truncate(0),
-            ppumask: PPUMASK::from_bits_truncate(0),
-            ppustatus: PPUSTATUS::from_bits_truncate(0),
+            ppuctrl: 0,
+            ppumask: 0,
+            ppustatus: 0,
             oam_addr: 0,
             oam_ram: [0x0; 0x100],
 

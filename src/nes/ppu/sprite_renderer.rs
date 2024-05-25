@@ -1,4 +1,6 @@
-use crate::nes::ppu::registers::{PPUCTRL, PPUSTATUS};
+use crate::nes::ppu::registers::{
+    SPRITE_0_HIT, SPRITE_OVERFLOW, SPRITE_PATTERN_TABLE, SPRITE_SIZE_16,
+};
 use crate::Nes;
 use std::ops::Mul;
 
@@ -24,7 +26,7 @@ impl Nes {
             if current_scanline >= y_pos && current_scanline < (y_pos + sprite_size) {
                 if secondary_oam_index == 8 {
                     //There are more than 8 sprites on this line -> sprite overflow
-                    self.ppustatus.insert(PPUSTATUS::SPRITE_OVERFLOW);
+                    self.ppustatus = self.ppustatus | SPRITE_OVERFLOW;
                 } else {
                     secondary_oam[secondary_oam_index] = current_sprite_y_index as u8;
                     secondary_oam_index += 1;
@@ -47,7 +49,7 @@ impl Nes {
                 // If sprite_size is 8, the pattern table depends of PPUCTRL bit
                 // If sprite_size if 16, the LSB of the index indicates the table
                 if sprite_size == 8 {
-                    self.get_active_pattern_table(PPUCTRL::SPRITE_PATTERN_TABLE)
+                    self.get_active_pattern_table(SPRITE_PATTERN_TABLE)
                 } else {
                     (u16::from(sprite_tile_index) & 0x1) * 0x1000
                 };
@@ -110,7 +112,7 @@ impl Nes {
                     let has_background = self.background_hit_flag[index_screen as usize];
 
                     if sprite_index == 0 && has_background {
-                        self.ppustatus.insert(PPUSTATUS::SPRITE_0_HIT);
+                        self.ppustatus = self.ppustatus | SPRITE_0_HIT;
                     }
 
                     //I must draw the pixel only if there isn't a background pixel or if the sprite is in front background
@@ -136,7 +138,7 @@ impl Nes {
     }
 
     fn get_sprite_size(&self) -> u16 {
-        if self.ppuctrl.contains(PPUCTRL::SPRITE_SIZE_16) {
+        if (self.ppuctrl & SPRITE_SIZE_16) != 0 {
             16
         } else {
             8

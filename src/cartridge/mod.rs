@@ -21,7 +21,7 @@ pub enum CartridgeMirroring {
     HORIZONTAL,
     VERTICAL,
     SingleScreenLower,
-    SingleScreenUpper
+    SingleScreenUpper,
 }
 
 pub fn from_ines(rom: &Vec<u8>) -> Box<dyn Cartridge> {
